@@ -1,10 +1,12 @@
-# from Environments import Environment
+# from wumpus.src.environments import Environment
 import copy
-from src.environment.Misc import OrientationState
-from src.environment.Agent import Agent
-from src.environment.Environments import Coords
-from src.environment.Environments import Environment
-from src.environment.Misc import Orientation
+import random
+from wumpus.src.agent.Agents import NaiveAgent
+from wumpus.src.environment.Misc import Action, OrientationState, Percept
+from wumpus.src.environment.Agent import Agent
+from wumpus.src.environment.Environments import Coords
+from wumpus.src.environment.Environments import Environment
+from wumpus.src.environment.Misc import Orientation
 import unittest
 
 
@@ -75,6 +77,12 @@ class TestEnvironment(unittest.TestCase):
 
         assert (e.is_gold_at(false_potential_loc) == False)
         assert (e.is_gold_at(true_potential_loc) == True)
+        
+    def test_environment_terminated(self):
+        e = Environment()
+        e.agent.location = e.wumpus_location
+        print(e.visualize())
+        assert(e.agent.location == e.wumpus_location)
 
     def test_environment_kill_attempt_successful(self):
         e = Environment()
@@ -148,10 +156,10 @@ class TestEnvironment(unittest.TestCase):
 
     def test_is_stench(self):
         e = Environment()
-        e.agent.location = Coords(0, 0)
+        e.agent.location = Coords(1, 2)
 
         # add wumpus next to agent
-        e.wumpus_location = Coords(1,0)
+        e.wumpus_location = Coords(1,3)
         assert(e.is_stench())
         
         # move agent
@@ -168,10 +176,10 @@ class TestEnvironment(unittest.TestCase):
         # add wumpus next to agent
         e.wumpus_location = Coords(1,0)
         board = e.visualize()
-        # print('\n')
+        # print('\n*888888')
         # print(board)        
         # print('\n')
-        assert(board == '| |G| | |\n| | | | |\n| | | | |\n|A|W| | |\n')
+        assert(board == '|    |  G |    |    |\n|    |    |    |    |\n|    |    |    |    |\n|A   |   W|    |    |\n')
         
     def test_init_environment(self):
         e = Environment(4, 4, 0.2, False)
@@ -235,6 +243,28 @@ class TestAgent(unittest.TestCase):
         a.orientation = Orientation(OrientationState.East)
         assert(a.orientation != b.orientation)
         
+
+    # def test_action(self):
+    #     a = NaiveAgent()
+    #     next_action = a.next_action(Percept(
+    #         False,
+    #         False,
+    #         False,
+    #         False,
+    #         False,
+    #         False,
+    #         False
+    #     ))
+    #     print(next_action)
+    #     # print(str(int(Action.Forward)))
+    #     # print(random.randint(int(Action.Forward), int(Action.Climb)))
+        
+        
+# class TestWumpusWorld(unittest.TestCase):
+#     def test_init(self):
+#         (initial_env, initial_percept) = Environment.initialize(4, 4, 0, False)
+#         print(initial_env.visualize())
+
 
 if __name__ == '__main__':
     unittest.main()

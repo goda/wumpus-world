@@ -1,5 +1,5 @@
 import random
-from environment.Misc import Action, Percept
+from wumpus.src.environment.Misc import Action, Percept
 
 
 class Agent:
@@ -17,5 +17,6 @@ class NaiveAgent(Agent):
     def __init__(self) -> None:
         pass
 
-    def next_action(percept: Percept) -> Action:
-        return Action(random.randint(Action.Forward, Action.Climb))
+    def next_action(self, percept: Percept) -> Action:
+        # return Action(random.randint(int(Action.Forward), int(Action.TurnRight)))
+        return Action(random.randint(int(Action.Forward), int(Action.Climb)))

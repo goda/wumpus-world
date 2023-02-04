@@ -1,7 +1,6 @@
-from enum import Enum
+from enum import IntEnum
 
-
-class Action(Enum):
+class Action(IntEnum):
     """An enum class to hold the type of action
 
     Args:
@@ -64,7 +63,7 @@ class Coords():
 # Orientation Classes
 #########################
 
-class OrientationState(Enum):
+class OrientationState(IntEnum):
     """An enum for storing the orientation 
 
     Args:
@@ -77,10 +76,16 @@ class OrientationState(Enum):
 
 
 class Orientation:
-    state = OrientationState.North
+    state = OrientationState.East
 
     def __init__(self, orientation: OrientationState) -> None:
         self.state = orientation
+
+    def turn(self, action: Action):
+        if action == Action.TurnLeft:
+            self.turn_left()
+        elif action == Action.TurnRight:
+            self.turn_right()
 
     def turn_left(self):
         new_orientation_index = (self.state.value - 1) % 4

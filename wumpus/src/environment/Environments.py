@@ -1,11 +1,11 @@
 import copy
 from typing import Self, Tuple
 from typing import List
-from src.environment.Misc import Percept
-from src.environment.Misc import Action
-from src.environment.Misc import OrientationState
-from src.environment.Agent import Agent
-from src.environment.Misc import Coords
+from .Misc import Percept
+from .Misc import Action
+from .Misc import OrientationState
+from .Agent import Agent
+from .Misc import Coords
 import random
 
 class Environment():
@@ -39,8 +39,8 @@ class Environment():
         self.allow_climb_without_gold = allow_climb_without_gold
         
         def random_location_except_origin() -> Coords:
-            x = random.randint(1, self.grid_width)
-            y = random.randint(1, self.grid_height)
+            x = random.randint(1, self.grid_width - 1)
+            y = random.randint(1, self.grid_height - 1)
             return Coords(x, y)
         
         generate_pit_locations = lambda w, h : [Coords(x, y) for x in range(0, w)
@@ -117,8 +117,8 @@ class Environment():
         
         if action == Action.Forward:
             new_agent = self.agent.forward(self.grid_width, self.grid_height)
-            death = (self.is_wumpus_at(self.agent.location) and self.wumpus_alive) \
-                    or self.is_pit_at(self.agent.location) 
+            death = (self.is_wumpus_at(new_agent.location) and self.wumpus_alive) \
+                    or self.is_pit_at(new_agent.location) 
             # update environment/ agent
             new_agent.is_alive = not death
             new_agent.has_gold = self.gold_location == new_agent.location
@@ -126,13 +126,15 @@ class Environment():
             new_environment = copy.deepcopy(self)
             new_environment.agent = new_agent
             
-            return (new_environment,
-                    Percept(self.is_stench(), self.is_breeze(), 
-                           self.is_glitter(), new_agent.location == self.agent.location, 
-                           False, not new_agent.is_alive, 
-                           -1 if new_agent.is_alive else -1001)
+            return (
+                new_environment,
+                Percept(new_environment.is_stench(), new_environment.is_breeze(), 
+                        new_environment.is_glitter(), new_agent.location == self.agent.location, 
+                        False, not new_agent.is_alive, 
+                        -1 if new_agent.is_alive else -1001)
             )
         elif action == Action.TurnLeft or action == Action.TurnRight:
+            self.agent.orientation.turn(action)
             return (
                 self,
                 Percept(self.is_stench(), self.is_breeze(), 
@@ -145,6 +147,7 @@ class Environment():
             new_agent.has_gold = self.is_glitter()
             new_environment = copy.deepcopy(self)
             new_environment.gold_location = new_agent.location if new_agent.has_gold else self.gold_location
+            new_environment.agent = new_agent
             return (
                 new_environment,
                 Percept(self.is_stench(), self.is_breeze(), 
@@ -158,7 +161,7 @@ class Environment():
             is_terminated = success or (self.allow_climb_without_gold and at_start_location)
             return(
                 self,
-                Percept(False, False, self.is_glitter(), False, False, is_terminated, 
+                Percept(self.is_stench(), self.is_breeze(), self.is_glitter(), False, False, is_terminated, 
                         999 if success else -1)
             )
         elif action == Action.Shoot:
@@ -184,12 +187,12 @@ class Environment():
             board += "|"
             for x in range(0, self.grid_width):
                 posn = Coords(x, y)
-                isA = "A" if self.is_agent_at(posn) else ""
-                isP = "P" if self.is_pit_at(posn) else ""
-                isG = "G" if self.is_gold_at(posn) else ""
-                isW = wumpus_symbol if self.is_wumpus_at(posn) else ""
-                sym =  isA + isP + isG + isW + " "
-                board += sym[0]
+                isA = "A" if self.is_agent_at(posn) else " "
+                isP = "P" if self.is_pit_at(posn) else " "
+                isG = "G" if self.is_gold_at(posn) else " "
+                isW = wumpus_symbol if self.is_wumpus_at(posn) else " "
+                sym =  isA + isP + isG + isW
+                board += sym
                 board += "|"
             board += "\n"
         
