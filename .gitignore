@@ -8,6 +8,6 @@ parts
 src/*.egg-info
 lib
 lib64
-*.pyo
-*.pyc
+**.pyo
+**.pyc
 **/__pycache__

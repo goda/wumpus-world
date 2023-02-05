@@ -16,7 +16,6 @@ class Agent():
     def __init__(self, location: Coords = Coords(0,0), 
                  orientation: Orientation = Orientation(OrientationState.East), 
                  has_gold: bool = False, has_arrow: bool = True, is_alive: bool = True):
-        print(orientation.state.name)
         self.location = location
         self.orientation = orientation
         self.has_gold = has_gold
