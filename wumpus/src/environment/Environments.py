@@ -1,12 +1,12 @@
 import copy
+import random
 from typing import Self, Tuple
 from typing import List
-from .Misc import Percept
-from .Misc import Action
-from .Misc import OrientationState
-from .Agent import Agent
-from .Misc import Coords
-import random
+from wumpus.src.environment.Misc import Percept
+from wumpus.src.environment.Misc import Action
+from wumpus.src.environment.Misc import OrientationState
+from wumpus.src.environment.Agent import Agent
+from wumpus.src.environment.Misc import Coords
 
 class Environment():
     """A class to hold the environment configuration including methods for simulating 
@@ -23,8 +23,8 @@ class Environment():
     wumpus_alive: bool = True
     gold_location: Coords
     
-    @staticmethod
-    def initialize(grid_width: int = 4, grid_height: int = 4, 
+    @classmethod
+    def initialize(self, grid_width: int = 4, grid_height: int = 4, 
                  pit_prob: float = 0.2, allow_climb_without_gold: bool = False) -> Tuple[Self, Percept]:
         e = Environment(grid_width, grid_height, pit_prob, allow_climb_without_gold)
         percept = Percept(e.is_stench(), e.is_breeze(),
@@ -121,10 +121,11 @@ class Environment():
                     or self.is_pit_at(new_agent.location) 
             # update environment/ agent
             new_agent.is_alive = not death
-            new_agent.has_gold = self.gold_location == new_agent.location
+            new_agent.has_gold = self.agent.has_gold or self.gold_location == new_agent.location
             
             new_environment = copy.deepcopy(self)
             new_environment.agent = new_agent
+            new_environment.gold_location = new_agent.location if new_agent.has_gold else new_environment.gold_location
             
             return (
                 new_environment,
@@ -194,6 +195,6 @@ class Environment():
                 sym =  isA + isP + isG + isW
                 board += sym
                 board += "|"
-            board += "\n"
+            board += "\n" if y > 0  else "" 
         
         return board
