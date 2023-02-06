@@ -16,9 +16,7 @@ class WumpusWorld():
             next_action = agent.next_action(percept)
             (next_environment, next_percept) = env.apply_action(next_action)
             print("Action: ", str(next_action.name), "| Agent Orientation: ", next_environment.agent.orientation.state.name)
-            print('---------------------')
             print(next_environment.visualize())
-            print('---------------------')
             print(next_percept.show())
             total_reward = next_percept.reward + \
                 (run_episode(next_environment, 

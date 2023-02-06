@@ -184,8 +184,9 @@ class Environment():
         wumpus_symbol = "W" if self.wumpus_alive else "w"
         
         board = ""
+        board += '  ---------------------\n'
         for y in range(self.grid_height-1 , -1, -1):
-            board += "|"
+            board += str(y + 1).zfill(2) + "|"
             for x in range(0, self.grid_width):
                 posn = Coords(x, y)
                 isA = "A" if self.is_agent_at(posn) else " "
@@ -195,6 +196,8 @@ class Environment():
                 sym =  isA + isP + isG + isW
                 board += sym
                 board += "|"
-            board += "\n" if y > 0  else "" 
-        
+            board += "\n" #if y > 0  else "" 
+        board += '  ---------------------'
+        colsIdx = [str(x+1).zfill(2) for x in range(0, self.grid_width)]
+        board += '\n    ' + '   '.join(colsIdx)
         return board

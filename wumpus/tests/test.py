@@ -174,7 +174,7 @@ class TestEnvironment(unittest.TestCase):
         # add wumpus next to agent
         e.wumpus_location = Coords(1,0)
         board = e.visualize()
-        assert(board == '|    |  G |    |    |\n|    |    |    |    |\n|    |    |    |    |\n|A   |   W|    |    |')
+        assert(board == '  ---------------------\n04|    |  G |    |    |\n03|    |    |    |    |\n02|    |    |    |    |\n01|A   |   W|    |    |\n  ---------------------\n    01   02   03   04')
         
     def test_init_environment(self):
         e = Environment(4, 4, 0.2, False)
