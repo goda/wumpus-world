@@ -1,5 +1,3 @@
-import sys
-from typing import List
 from wumpus.src.environment.Environments import Environment
 from wumpus.src.environment.Environments import Percept
 from wumpus.src.agent.Agents import NaiveAgent

@@ -1,6 +1,6 @@
 # Assignment 1
 
-This notebook is a brief summary, and instruction on how to run the current code and simulate the game as described in Assignment 1 instructions.
+This notebook is a brief summary, and instruction on how to run the current code and simulate the game as described in the Assignment 1 instructions.
 
 ## Requirements
 
@@ -48,6 +48,12 @@ Ran the code changing the pit probability to zero, and ran enough times until `N
 
 ### Scenario 2 - Pits, Agent Dies
 
-Ran the code changing the pit probability to 0.2, and ran until `NäiveAgent` dies
+Ran the code changing the pit probability to `0.2`, and ran until `NäiveAgent` dies
 
 ![](images/scenario2.png)
+
+### Scenario 3 - Pits, Agent Climbs Out
+
+Ran the code, keeping the pit probability to `0.2`, and ran until `NäiveAgent` grabs the gold and climbs out of the cave.
+
+![](images/scenario3.png)

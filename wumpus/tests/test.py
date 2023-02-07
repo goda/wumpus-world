@@ -238,22 +238,9 @@ class TestAgent(unittest.TestCase):
         a.orientation = Orientation(OrientationState.East)
         assert(a.orientation != b.orientation)
         
-
-    def test_action(self):
-        a = NaiveAgent()
-        next_action = a.next_action(Percept(
-            False,
-            False,
-            False,
-            False,
-            False,
-            False,
-            False
-        ))
-        
         
 class TestWumpusWorld(unittest.TestCase):
-    def test_init(self):
+    def test_grab_gold_and_climb_out(self):
         (initial_env, initial_percept) = Environment.initialize(4, 4, 0, False)
         
         # place gold at agent location
