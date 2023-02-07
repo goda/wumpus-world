@@ -196,7 +196,7 @@ class Environment():
                 sym =  isA + isP + isG + isW
                 board += sym
                 board += "|"
-            board += "\n" #if y > 0  else "" 
+            board += "\n"
         board += '  ---------------------'
         colsIdx = [str(x+1).zfill(2) for x in range(0, self.grid_width)]
         board += '\n    ' + '   '.join(colsIdx)
