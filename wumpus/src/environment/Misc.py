@@ -1,4 +1,5 @@
 from enum import IntEnum
+from typing import List, Self
 
 class Action(IntEnum):
     """An enum class to hold the type of action
@@ -12,7 +13,12 @@ class Action(IntEnum):
     Shoot = 4
     Grab = 5
     Climb = 6
-
+    
+    @staticmethod
+    def get_all() -> List[Self]:
+        allowed_actions = [Action(x) for x in range(1,7)]
+        return allowed_actions
+        
 
 class Percept():
     """A class to hold the percept as would be sensed by the Agent
@@ -26,9 +32,14 @@ class Percept():
     is_terminated: bool = False
     reward: bool = False
 
-    def __init__(self, stench: bool, breeze: bool, 
-                 glitter: bool, bump: bool, scream: bool, 
-                 is_terminated: bool, reward: bool):
+    def __init__(self, 
+                 stench: bool = False, 
+                 breeze: bool = False, 
+                 glitter: bool = False, 
+                 bump: bool = False, 
+                 scream: bool = False, 
+                 is_terminated: bool = False, 
+                 reward: bool = False):
         self.stench = stench
         self.breeze = breeze
         self.glitter = glitter
@@ -94,3 +105,22 @@ class Orientation:
     def turn_right(self):
         new_orientation_index = (self.state.value + 1) % 4
         self.state = OrientationState(new_orientation_index)
+
+class WumpusNode:
+    id: int
+    location: Coords
+    orientation_state: OrientationState
+    
+    def __init__(self, id: int, location: Coords, orientation_state: OrientationState) -> None:
+        self.id = id
+        self.location = location
+        self.orientation_state = orientation_state
+        
+    def __str__(self) -> str:
+        return "{""id:"" " + str(self.id) + ", ""L:"" " + str(self.location) + ", ""O"": " + self.orientation_state.name  + "}"
+    
+class WumpusEdge:
+    orientation_state: OrientationState
+    
+    def __init__(self, orientation_state: OrientationState) -> None:
+        self.orientation_state = orientation_state

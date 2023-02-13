@@ -1,12 +1,14 @@
-# from wumpus.src.environments import Environment
 import copy
 import unittest
-from wumpus.src.agent.Agents import NaiveAgent
-from wumpus.src.environment.Misc import Action, OrientationState, Percept
+from wumpus.src.agent.Agents import BeelineAgent, NaiveAgent
+from wumpus.src.agent.Misc import WumpusDiGraph
+from wumpus.src.environment.Misc import Action, OrientationState, Percept, WumpusEdge, WumpusNode
 from wumpus.src.environment.Agent import Agent
 from wumpus.src.environment.Environments import Coords
 from wumpus.src.environment.Environments import Environment
 from wumpus.src.environment.Misc import Orientation
+import matplotlib.pyplot as plt
+import networkx as nx
 
 
 class TestEnvironment(unittest.TestCase):
@@ -238,7 +240,6 @@ class TestAgent(unittest.TestCase):
         a.orientation = Orientation(OrientationState.East)
         assert(a.orientation != b.orientation)
         
-        
 class TestWumpusWorld(unittest.TestCase):
     def test_grab_gold_and_climb_out(self):
         (initial_env, initial_percept) = Environment.initialize(4, 4, 0, False)
@@ -281,6 +282,140 @@ class TestWumpusWorld(unittest.TestCase):
         (next_environment, next_percept) = next_environment.apply_action(next_action)
         # print(next_percept.reward)
         assert(next_percept.reward == 999)
+
+class TestNaiveAgent(unittest.TestCase):
+    def test_allowed_actions(self):
+        a = NaiveAgent()
+        allowed_actions = [Action.Climb]
+        random_action = a.random_action(allowed_actions)
+        assert(random_action == Action.Climb)
+        
+        
+class TestAction(unittest.TestCase):
+    def test_get_all(self):
+        all_actions = Action.get_all()
+        assert(len(all_actions) == 6)
+
+class TestWumpusNodeAndEdge(unittest.TestCase):
+    n1 = WumpusNode(1, Coords(1,1), orientation_state=OrientationState.East)
+    n2 = WumpusNode(2, Coords(2,1), orientation_state=OrientationState.East)
+    n3 = WumpusNode(3, Coords(3,1), orientation_state=OrientationState.East)
+    G = WumpusDiGraph()
+    G.add_nodes_from([n1, n2, n3])
+    G.add_edge(n1,n2, object=WumpusEdge(OrientationState.East))
+    G.add_edge(n2,n3, object=WumpusEdge(OrientationState.East))
+        
+    def test_str(self):
+        n = WumpusNode(1, Coords(1,1), orientation_state=OrientationState.East)
+        assert(str(n) == '{id: 1, L: (x: 1, y: 1), O: East}')
+
+    def test_node_and_edge(self):
+        n1 = WumpusNode(1, Coords(1,1), orientation_state=OrientationState.East)
+        n2 = WumpusNode(2, Coords(2,1), orientation_state=OrientationState.East)
+        n3 = WumpusNode(3, Coords(3,1), orientation_state=OrientationState.East)
+        G = nx.DiGraph()
+        G.add_nodes_from([n1, n2, n3])
+        G.add_edge(n1,n2, object=WumpusEdge(OrientationState.East))
+        G.add_edge(n2,n3, object=WumpusEdge(OrientationState.East))
+        # nx.draw(G, with_labels=True)
+        # plt.show()
+        
+    def test_find_node(self):
+        assert(self.G.find_node(Coords(1,1)) is not None)
+        assert(self.G.find_node(Coords(3,3)) is None)
+        
+
+
+class TestBeelineAgent(unittest.TestCase):
+    
+    def test_init_graph(self):
+        a = BeelineAgent()
+        a.init_graph(Coords(1,1), orientation_state=OrientationState.East)
+        subax1 = plt.subplot(121)
+        # nx.draw(a.G, with_labels=True)
+        # plt.show()
+
+    # def test_next_action(self):
+    #     a = BeelineAgent()
+    #     a.init_graph(Coords(1,1), orientation_state=OrientationState.East)
+    #     a.has_gold = True
+    #     p = Percept(glitter=False)
+        
+    #     for i in range(0,10):
+    #         next_action = a.next_action(p)
+    #         assert(next_action.name != Action.Grab.name)
+
+    def test_grab_gold_and_climb_out(self):
+        (initial_env, initial_percept) = Environment.initialize(4, 4, 0, False)
+        agent = BeelineAgent()
+        agent.init_graph(Coords(0,0), OrientationState.East)
+
+        
+        # place gold at agent location
+        initial_env.gold_location = initial_env.agent.location
+        # action grab gold - ignoring what the agent decided to do
+        next_action = Action.Grab
+        # get next action from agent 
+        next_action = agent.next_action(initial_env.agent.location, initial_percept,
+                                        debug_action=next_action)
+
+        # apply action
+        (next_environment, next_percept) = initial_env.apply_action(next_action)
+        # print('---------------------')
+        # print(next_environment.visualize())
+        # print('---------------------')
+        # print(next_percept.show())
+        
+        # # get next action from agent 
+        next_action = Action.Forward
+        next_action = agent.next_action(next_environment.agent.location, next_percept,
+                                        debug_action=next_action)
+        # action move 
+        # apply action
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        # print('---------------------')
+        # print(next_environment.visualize())
+        # print('---------------------')
+        # print(next_percept.show())        
+
+
+        # action -  turn around 
+        next_action = Action.TurnLeft
+        next_action = agent.next_action(next_environment.agent.location, next_percept,
+                                        debug_action=next_action)        
+
+        # apply action
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        next_action = Action.TurnLeft
+        next_action = agent.next_action(next_environment.agent.location, next_percept,
+                                        debug_action=next_action)
+                
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        next_action = Action.Forward
+        next_action = agent.next_action(next_environment.agent.location, next_percept,
+                                        debug_action=next_action)
+                
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        # print('---------------------')
+        # print(next_environment.visualize())
+        # print('---------------------')
+        # print(next_percept.show())
+        
+        
+        # # try climb out 
+        next_action = Action.Climb
+        next_action = agent.next_action(next_environment.agent.location, next_percept,
+                                        debug_action=next_action)
+                
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        # # print(next_percept.reward)
+        agent.display_graph()          
+        # print('sfsdfs')
+        # subax1 = plt.subplot(121)
+        # nx.draw(agent.graph, with_labels=True)
+        # plt.show()
+        
+        # assert(next_percept.reward == 999)
 
 if __name__ == '__main__':
     unittest.main()
