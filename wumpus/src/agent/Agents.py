@@ -62,7 +62,7 @@ class BeelineAgent(NaiveAgent):
         # need to add the move/action to the graph
         next_node = self.get_next_node(location, self.current_node,
                                             self.current_action)
-        print(next_node)
+
         if next_node is not None:
             self.update_graph(next_node)
             self.current_node = next_node
@@ -102,7 +102,16 @@ class BeelineAgent(NaiveAgent):
                             object = edge)
 
     def display_graph(self) -> None:
-        subax1 = plt.subplot(121)
-        nx.draw(self.graph, with_labels=True)
-        plt.margins(x=0.4)
-        plt.show();
+        G = self.graph
+        pos = nx.spring_layout(G)
+        plt.figure()
+        nx.draw(
+            G, pos, edge_color='black', width=1, linewidths=1,
+            node_size=500, node_color='pink', alpha=0.9,
+            labels={node: node for node in G.nodes()}
+        )
+        edge_labels = nx.get_edge_attributes(G,'object') # key is edge, pls check for your case
+        formatted_edge_labels = {(elem[0],elem[1]):edge_labels[elem] for elem in edge_labels} # use this to modify the tuple keyed dict if it has > 2 elements, else ignore
+        nx.draw_networkx_edge_labels(G,pos,edge_labels=formatted_edge_labels,font_color='red')
+        plt.axis('off')
+        plt.show()        

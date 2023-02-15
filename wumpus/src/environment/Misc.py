@@ -124,3 +124,6 @@ class WumpusEdge:
     
     def __init__(self, orientation_state: OrientationState) -> None:
         self.orientation_state = orientation_state
+        
+    def __str__(self) -> str:
+        return self.orientation_state.name
