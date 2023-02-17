@@ -48,6 +48,9 @@ class BeelineAgent(NaiveAgent):
         
     def next_action(self, location: Coords, percept: Percept,
                     debug_action: Action = None) -> Action:
+        # if agent has gold, it should be following its path
+        # out using what it remembered from its graph
+        
         allowed_actions = Action.get_all()
         allowed_actions.remove(Action.Climb)
         
@@ -64,7 +67,10 @@ class BeelineAgent(NaiveAgent):
                                             self.current_action)
 
         if next_node is not None:
-            self.update_graph(next_node)
+            existing_node = self.graph.find_node(next_node)
+            next_node = next_node if existing_node is None else existing_node
+                
+            self.update_graph(next_node, self.current_action)
             self.current_node = next_node
 
         self.percept = percept # not sure if we need this
@@ -80,9 +86,9 @@ class BeelineAgent(NaiveAgent):
         orientation = Orientation(current_node.orientation_state)
         if current_action in [Action.TurnLeft, Action.TurnRight]:
             orientation.turn(current_action)
-            return WumpusNode(current_node.id + 1, current_node.location, orientation.state)
+            return WumpusNode(current_node.id , current_node.location, orientation.state)
         elif current_action == Action.Forward and new_location != current_node.location:
-            return WumpusNode(current_node.id + 1, new_location, current_node.orientation_state)
+            return WumpusNode(current_node.id , new_location, current_node.orientation_state)
         
         return None
             
@@ -95,8 +101,9 @@ class BeelineAgent(NaiveAgent):
         self.current_node = n
         
     
-    def update_graph(self, next_node: WumpusNode) -> None:
-        edge = WumpusEdge(next_node.orientation_state)
+    def update_graph(self, next_node: WumpusNode, action: Action) -> None:
+        # edge = WumpusEdge(next_node.orientation_state)
+        edge = WumpusEdge(action)
         self.graph.add_edge(self.current_node,
                             next_node,
                             object = edge)
@@ -114,4 +121,6 @@ class BeelineAgent(NaiveAgent):
         formatted_edge_labels = {(elem[0],elem[1]):edge_labels[elem] for elem in edge_labels} # use this to modify the tuple keyed dict if it has > 2 elements, else ignore
         nx.draw_networkx_edge_labels(G,pos,edge_labels=formatted_edge_labels,font_color='red')
         plt.axis('off')
-        plt.show()        
+        plt.show()     
+        
+        print(str(self.current_node))

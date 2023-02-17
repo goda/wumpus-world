@@ -119,11 +119,22 @@ class WumpusNode:
     def __str__(self) -> str:
         return "{""id:"" " + str(self.id) + ", ""L:"" " + str(self.location) + ", ""O"": " + self.orientation_state.name  + "}"
     
+    def __eq__(self, __o: object) -> bool:
+        return self.location == __o.location and self.orientation_state == __o.orientation_state
+    
+    def __hash__(self):
+        return hash(self.__str__())
+    
+    def __repr__(self):
+        return str(self.__dict__.values())
+        
 class WumpusEdge:
     orientation_state: OrientationState
+    action: Action
     
-    def __init__(self, orientation_state: OrientationState) -> None:
-        self.orientation_state = orientation_state
+    def __init__(self, action: Action) -> None:
+        self.action = action
         
     def __str__(self) -> str:
-        return self.orientation_state.name
+        # return self.orientation_state.name
+        return self.action.name

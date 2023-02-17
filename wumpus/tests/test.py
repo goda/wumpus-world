@@ -302,8 +302,8 @@ class TestWumpusNodeAndEdge(unittest.TestCase):
     n3 = WumpusNode(3, Coords(3,1), orientation_state=OrientationState.East)
     G = WumpusDiGraph()
     G.add_nodes_from([n1, n2, n3])
-    G.add_edge(n1,n2, object=WumpusEdge(OrientationState.East))
-    G.add_edge(n2,n3, object=WumpusEdge(OrientationState.East))
+    G.add_edge(n1,n2, object=WumpusEdge(Action.Forward))
+    G.add_edge(n2,n3, object=WumpusEdge(Action.Forward))
         
     def test_str(self):
         n = WumpusNode(1, Coords(1,1), orientation_state=OrientationState.East)
@@ -315,14 +315,14 @@ class TestWumpusNodeAndEdge(unittest.TestCase):
         n3 = WumpusNode(3, Coords(3,1), orientation_state=OrientationState.East)
         G = nx.DiGraph()
         G.add_nodes_from([n1, n2, n3])
-        G.add_edge(n1,n2, object=WumpusEdge(OrientationState.East))
-        G.add_edge(n2,n3, object=WumpusEdge(OrientationState.East))
+        G.add_edge(n1,n2, object=WumpusEdge(Action.Forward))
+        G.add_edge(n2,n3, object=WumpusEdge(Action.Forward))
         # nx.draw(G, with_labels=True)
         # plt.show()
         
     def test_find_node(self):
-        assert(self.G.find_node(Coords(1,1)) is not None)
-        assert(self.G.find_node(Coords(3,3)) is None)
+        assert(self.G.find_node_location(Coords(1,1)) is not None)
+        assert(self.G.find_node_location(Coords(3,3)) is None)
         
 
 
@@ -383,14 +383,26 @@ class TestBeelineAgent(unittest.TestCase):
         next_action = Action.TurnLeft
         next_action = agent.next_action(next_environment.agent.location, next_percept,
                                         debug_action=next_action)        
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
 
         # apply action
-        (next_environment, next_percept) = next_environment.apply_action(next_action)
         next_action = Action.TurnLeft
         next_action = agent.next_action(next_environment.agent.location, next_percept,
                                         debug_action=next_action)
-                
         (next_environment, next_percept) = next_environment.apply_action(next_action)
+                
+        # apply action
+        next_action = Action.TurnLeft
+        next_action = agent.next_action(next_environment.agent.location, next_percept,
+                                        debug_action=next_action)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        
+        # apply action
+        next_action = Action.TurnLeft
+        next_action = agent.next_action(next_environment.agent.location, next_percept,
+                                        debug_action=next_action)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        
         next_action = Action.Forward
         next_action = agent.next_action(next_environment.agent.location, next_percept,
                                         debug_action=next_action)
