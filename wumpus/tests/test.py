@@ -223,6 +223,11 @@ class TestOrientation(unittest.TestCase):
         a.is_alive = not a.is_alive
         assert(new_env.agent.is_alive != e.agent.is_alive)
 
+
+    def test_reverse_orientation(self):
+        o = OrientationState.East
+        assert(OrientationState.opposite_orientation(o).name == OrientationState.West.name)
+
 class TestAgent(unittest.TestCase):
     """Class for testing agent methods
 
@@ -296,23 +301,29 @@ class TestAction(unittest.TestCase):
         all_actions = Action.get_all()
         assert(len(all_actions) == 6)
 
+    def test_opposite_turn(self):
+        a = Action.TurnRight
+        assert(Action.opposite_turn(a) == Action.TurnLeft)
+        a = Action.TurnLeft
+        assert(Action.opposite_turn(a) == Action.TurnRight)
+
 class TestWumpusNodeAndEdge(unittest.TestCase):
-    n1 = WumpusNode(1, Coords(1,1), orientation_state=OrientationState.East)
-    n2 = WumpusNode(2, Coords(2,1), orientation_state=OrientationState.East)
-    n3 = WumpusNode(3, Coords(3,1), orientation_state=OrientationState.East)
+    n1 = WumpusNode(Coords(1,1), orientation_state=OrientationState.East)
+    n2 = WumpusNode(Coords(2,1), orientation_state=OrientationState.East)
+    n3 = WumpusNode(Coords(3,1), orientation_state=OrientationState.East)
     G = WumpusDiGraph()
     G.add_nodes_from([n1, n2, n3])
     G.add_edge(n1,n2, object=WumpusEdge(Action.Forward))
     G.add_edge(n2,n3, object=WumpusEdge(Action.Forward))
         
     def test_str(self):
-        n = WumpusNode(1, Coords(1,1), orientation_state=OrientationState.East)
-        assert(str(n) == '{id: 1, L: (x: 1, y: 1), O: East}')
+        n = WumpusNode(Coords(1,1), orientation_state=OrientationState.East)
+        assert(str(n) == '{L: (x: 1, y: 1), O: East}')
 
     def test_node_and_edge(self):
-        n1 = WumpusNode(1, Coords(1,1), orientation_state=OrientationState.East)
-        n2 = WumpusNode(2, Coords(2,1), orientation_state=OrientationState.East)
-        n3 = WumpusNode(3, Coords(3,1), orientation_state=OrientationState.East)
+        n1 = WumpusNode(Coords(1,1), orientation_state=OrientationState.East)
+        n2 = WumpusNode(Coords(2,1), orientation_state=OrientationState.East)
+        n3 = WumpusNode(Coords(3,1), orientation_state=OrientationState.East)
         G = nx.DiGraph()
         G.add_nodes_from([n1, n2, n3])
         G.add_edge(n1,n2, object=WumpusEdge(Action.Forward))
@@ -346,30 +357,32 @@ class TestBeelineAgent(unittest.TestCase):
     #         assert(next_action.name != Action.Grab.name)
 
     def test_grab_gold_and_climb_out(self):
+        # 1. Setup environment
         (initial_env, initial_percept) = Environment.initialize(4, 4, 0, False)
         agent = BeelineAgent()
         agent.init_graph(Coords(0,0), OrientationState.East)
-
-        
         # place gold at agent location
         initial_env.gold_location = initial_env.agent.location
-        # action grab gold - ignoring what the agent decided to do
+
+        # 2.START AGENT ACTIONS
+        # 1. action grab gold - ignoring what the agent decided to do
         next_action = Action.Grab
         # get next action from agent 
         next_action = agent.next_action(initial_env.agent.location, initial_percept,
                                         debug_action=next_action)
-
         # apply action
         (next_environment, next_percept) = initial_env.apply_action(next_action)
         # print('---------------------')
         # print(next_environment.visualize())
         # print('---------------------')
         # print(next_percept.show())
+
         
-        # # get next action from agent 
+        # 2. move forward
         next_action = Action.Forward
         next_action = agent.next_action(next_environment.agent.location, next_percept,
-                                        debug_action=next_action)
+                                        debug_action=next_action)  
+        
         # action move 
         # apply action
         (next_environment, next_percept) = next_environment.apply_action(next_action)
@@ -420,14 +433,10 @@ class TestBeelineAgent(unittest.TestCase):
                                         debug_action=next_action)
                 
         (next_environment, next_percept) = next_environment.apply_action(next_action)
-        # # print(next_percept.reward)
-        agent.display_graph()          
-        # print('sfsdfs')
-        # subax1 = plt.subplot(121)
-        # nx.draw(agent.graph, with_labels=True)
-        # plt.show()
-        
-        # assert(next_percept.reward == 999)
+
+        agent.graph.display_graph()
+        # agent.determine_shortest_path()   
+        agent.determine_exit_path()  
 
 if __name__ == '__main__':
     unittest.main()

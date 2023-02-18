@@ -1,4 +1,5 @@
 import networkx as nx
+import matplotlib.pyplot as plt
 
 from wumpus.src.environment.Misc import Coords, WumpusNode
 
@@ -40,3 +41,18 @@ class WumpusDiGraph(nx.DiGraph):
                 return n
         
         return None    
+    
+    def display_graph(self) -> None:
+        G = self
+        pos = nx.spring_layout(G)
+        plt.figure()
+        nx.draw(
+            G, pos, edge_color='black', width=1, linewidths=1,
+            node_size=500, node_color='pink', alpha=0.9,
+            labels={node: node for node in G.nodes()}
+        )
+        edge_labels = nx.get_edge_attributes(G,'object') # key is edge, pls check for your case
+        formatted_edge_labels = {(elem[0],elem[1]):edge_labels[elem] for elem in edge_labels} # use this to modify the tuple keyed dict if it has > 2 elements, else ignore
+        nx.draw_networkx_edge_labels(G,pos,edge_labels=formatted_edge_labels,font_color='red')
+        plt.axis('off')
+        plt.show()  

@@ -51,6 +51,7 @@ class BeelineAgent(NaiveAgent):
         # if agent has gold, it should be following its path
         # out using what it remembered from its graph
         
+        
         allowed_actions = Action.get_all()
         allowed_actions.remove(Action.Climb)
         
@@ -78,6 +79,43 @@ class BeelineAgent(NaiveAgent):
         self.current_action = debug_action if debug_action is not None else self.random_action(allowed_actions)
         return self.current_action
           
+    # assuming 
+    def determine_shortest_path(self) -> dict:
+        starting_node = WumpusNode(Coords(0,0), OrientationState.East)
+        shortest_path = nx.shortest_path(self.graph, starting_node, self.current_node)
+        for n in shortest_path:
+            print('___ ', n)
+        return shortest_path
+    
+    def determine_exit_path(self):
+        shortest_path = self.determine_shortest_path()
+        # print(shortest_path[-1])
+        new_graph = WumpusDiGraph()
+        prev_reverse_node = None
+        prev_node = None
+        print('dtermening')
+        for i in range(len(shortest_path)-1, -1, -1):
+            print(shortest_path[i])
+            node: WumpusNode = shortest_path[i]
+            reverse_node = WumpusNode(node.location,
+                                      OrientationState.opposite_orientation(node.orientation_state))
+            if prev_node is None:
+                print('preve_node is none')
+                new_graph.add_node(reverse_node)
+                prev_node = node
+                prev_reverse_node = reverse_node
+            else:
+                new_graph.add_node(reverse_node)                
+                edge_object = self.graph.get_edge_data(node, prev_node)
+                print(edge_object['object'])
+                edge:WumpusEdge = edge_object['object']
+                new_graph.add_edge(prev_reverse_node, 
+                                   reverse_node,
+                                   object = WumpusEdge(Action.opposite_turn(edge.action)))
+                prev_reverse_node = reverse_node
+                prev_node = node
+        
+        new_graph.display_graph()
     
     def get_next_node(self, 
                      new_location: Coords, 
@@ -86,9 +124,9 @@ class BeelineAgent(NaiveAgent):
         orientation = Orientation(current_node.orientation_state)
         if current_action in [Action.TurnLeft, Action.TurnRight]:
             orientation.turn(current_action)
-            return WumpusNode(current_node.id , current_node.location, orientation.state)
+            return WumpusNode(current_node.location, orientation.state)
         elif current_action == Action.Forward and new_location != current_node.location:
-            return WumpusNode(current_node.id , new_location, current_node.orientation_state)
+            return WumpusNode(new_location, current_node.orientation_state)
         
         return None
             
@@ -96,7 +134,7 @@ class BeelineAgent(NaiveAgent):
     def init_graph(self, location: Coords, orientation_state: OrientationState) -> None:
         self.graph = WumpusDiGraph()
         
-        n = WumpusNode(1, location,orientation_state)
+        n = WumpusNode(location, orientation_state)
         self.graph.add_node(n)
         self.current_node = n
         
@@ -107,20 +145,3 @@ class BeelineAgent(NaiveAgent):
         self.graph.add_edge(self.current_node,
                             next_node,
                             object = edge)
-
-    def display_graph(self) -> None:
-        G = self.graph
-        pos = nx.spring_layout(G)
-        plt.figure()
-        nx.draw(
-            G, pos, edge_color='black', width=1, linewidths=1,
-            node_size=500, node_color='pink', alpha=0.9,
-            labels={node: node for node in G.nodes()}
-        )
-        edge_labels = nx.get_edge_attributes(G,'object') # key is edge, pls check for your case
-        formatted_edge_labels = {(elem[0],elem[1]):edge_labels[elem] for elem in edge_labels} # use this to modify the tuple keyed dict if it has > 2 elements, else ignore
-        nx.draw_networkx_edge_labels(G,pos,edge_labels=formatted_edge_labels,font_color='red')
-        plt.axis('off')
-        plt.show()     
-        
-        print(str(self.current_node))

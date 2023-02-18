@@ -19,6 +19,14 @@ class Action(IntEnum):
         allowed_actions = [Action(x) for x in range(1,7)]
         return allowed_actions
         
+    @staticmethod
+    def opposite_turn(action: Self) -> Self:
+        if action == Action.TurnRight:
+            return Action.TurnLeft    
+        elif action == Action.TurnLeft:
+            return Action.TurnRight
+
+        return action
 
 class Percept():
     """A class to hold the percept as would be sensed by the Agent
@@ -84,6 +92,11 @@ class OrientationState(IntEnum):
     East = 1
     South = 2
     West = 3
+    
+    @staticmethod
+    def opposite_orientation(orientation: Self) -> Self:
+        return OrientationState((orientation.value + 2) % 4)
+
 
 
 class Orientation:
@@ -105,19 +118,23 @@ class Orientation:
     def turn_right(self):
         new_orientation_index = (self.state.value + 1) % 4
         self.state = OrientationState(new_orientation_index)
+        
 
 class WumpusNode:
-    id: int
+    #id: int
     location: Coords
     orientation_state: OrientationState
     
-    def __init__(self, id: int, location: Coords, orientation_state: OrientationState) -> None:
-        self.id = id
+    def __init__(self, #id: int, 
+                 location: Coords, 
+                 orientation_state: OrientationState) -> None:
+        # self.id = id
         self.location = location
         self.orientation_state = orientation_state
         
     def __str__(self) -> str:
-        return "{""id:"" " + str(self.id) + ", ""L:"" " + str(self.location) + ", ""O"": " + self.orientation_state.name  + "}"
+        # return "{""id:"" " + str(self.id) + ", ""L:"" " + str(self.location) + ", ""O"": " + self.orientation_state.name  + "}"
+        return "{""L:"" " + str(self.location) + ", ""O"": " + self.orientation_state.name  + "}"
     
     def __eq__(self, __o: object) -> bool:
         return self.location == __o.location and self.orientation_state == __o.orientation_state
