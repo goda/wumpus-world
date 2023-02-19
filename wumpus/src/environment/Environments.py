@@ -2,7 +2,7 @@ import copy
 import random
 from typing import Self, Tuple
 from typing import List
-from wumpus.src.environment.Misc import Percept
+from wumpus.src.environment.Misc import Orientation, Percept
 from wumpus.src.environment.Misc import Action
 from wumpus.src.environment.Misc import OrientationState
 from wumpus.src.environment.Agent import Agent
@@ -16,7 +16,7 @@ class Environment():
     grid_height: int = 4
     pit_prob: float = 0.2
     allow_climb_without_gold: bool = False
-    agent: Agent = Agent()
+    agent: Agent = None
     pit_locations: List[Coords] = []
     terminated: bool = False
     wumpus_location: Coords
@@ -47,7 +47,9 @@ class Environment():
                             for y in range(0, h) if (x != 0 or y != 0)
                             and random.random() < self.pit_prob]
         self.pit_locations = generate_pit_locations(self.grid_width, self.grid_height)
-        
+
+        # instantiate agent with East orientation - had issue with previous instantiations
+        # of this agent class affect the orientation of a new agent
         self.agent = Agent()
         self.wumpus_location = random_location_except_origin()
         self.gold_location = random_location_except_origin()

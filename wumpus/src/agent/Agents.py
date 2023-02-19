@@ -24,8 +24,8 @@ class NaiveAgent(Agent):
     def __init__(self) -> None:
         pass
 
-    def next_action(self, percept: Percept) -> Action:
-        return Action(random.randint(int(Action.Forward), int(Action.Climb)))
+    def next_action(self, percept: Percept, debug_action: Action = None) -> Action:
+        return debug_action if debug_action is not None else Action(random.randint(int(Action.Forward), int(Action.Climb)))
     
     
     def random_action(self, allowed_actions: List[Action]) -> Action:
@@ -37,10 +37,10 @@ class BeelineAgent(NaiveAgent):
     if it survives and gets to the gold location.
 
     """
-    graph: WumpusDiGraph = WumpusDiGraph()
+    graph: WumpusDiGraph = None
     has_gold: bool = False
-    percept: Percept
-    current_node: WumpusNode
+    percept: Percept = None
+    current_node: WumpusNode = None
     current_action: Action = None
     exit_path_actions: List[Action] = None
     
@@ -55,18 +55,18 @@ class BeelineAgent(NaiveAgent):
                     debug_action: Action = None) -> Action:
         # if agent has gold, it should be following its path
         # out using what it remembered from its graph
-        next_action = None
+        next_selected_action = None
         if self.current_action == Action.Grab:
             self.exit_path_actions = self.determine_exit_path()
         if self.has_gold:
-            next_action = self.exit_path_actions.pop(0)
+            next_selected_action = self.exit_path_actions.pop(0)
         elif percept.glitter:
             self.has_gold = True
-            next_action = Action.Grab
+            next_selected_action = Action.Grab
         
         # if next_action is none - we are not on exit path yet, and no gold
         # in sight - random action ensuing
-        if next_action is None:
+        if next_selected_action is None:
             allowed_actions = Action.get_all()
             allowed_actions.remove(Action.Climb)
             
@@ -80,7 +80,7 @@ class BeelineAgent(NaiveAgent):
             
             
             self.percept = percept # not sure if we need this
-            next_action = debug_action if debug_action is not None else self.random_action(allowed_actions)
+            next_selected_action = debug_action if debug_action is not None else self.random_action(allowed_actions)
         
         # need to update the graph based on current_action
         next_node = self.get_next_node(self.current_node,
@@ -94,8 +94,8 @@ class BeelineAgent(NaiveAgent):
             self.current_node = next_node
         
         # return next_Action to the game
-        self.current_action = next_action
-        return next_action
+        self.current_action = next_selected_action
+        return next_selected_action
           
     def determine_shortest_path(self) -> list:
         """Uses builtin shortest_path method to get the 
@@ -174,9 +174,10 @@ class BeelineAgent(NaiveAgent):
         elif current_node.orientation_state  == OrientationState.South:
             y_delta = -1
         
-        return Coords(current_node.location.x + x_delta, 
+        new_location = Coords(current_node.location.x + x_delta, 
                       current_node.location.y + y_delta)
-    
+        return new_location
+        
     # GRAPH based functions
     def init_graph(self, 
                    location: Coords, 

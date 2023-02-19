@@ -14,10 +14,10 @@ class Agent():
     is_alive: bool = True
 
     def __init__(self, location: Coords = Coords(0,0), 
-                 orientation: Orientation = Orientation(OrientationState.East), 
+                 orientation: OrientationState = OrientationState.East, 
                  has_gold: bool = False, has_arrow: bool = True, is_alive: bool = True):
         self.location = location
-        self.orientation = orientation
+        self.orientation =  Orientation(orientation)
         self.has_gold = has_gold
         self.has_arrow = has_arrow
         self.is_alive = is_alive

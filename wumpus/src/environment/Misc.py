@@ -103,7 +103,7 @@ class OrientationState(IntEnum):
 
 
 class Orientation:
-    state = OrientationState.East
+    state: OrientationState = OrientationState.East
 
     def __init__(self, orientation: OrientationState) -> None:
         self.state = orientation

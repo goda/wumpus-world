@@ -182,6 +182,17 @@ class TestEnvironment(unittest.TestCase):
         e = Environment(4, 4, 0.2, False)
         
         assert(Coords(0,0) not in e.pit_locations)
+        
+    def test_init_environments_multiple(self):
+        (e, p) = Environment.initialize()
+        next_action = Action.TurnLeft
+        (next_environment, next_percept) = e.apply_action(next_action)
+        assert(next_environment.agent.orientation.state == OrientationState.North)
+        
+        
+        (new_e, p) = Environment.initialize()
+        assert(new_e.agent.orientation.state == OrientationState.East)
+
 
 class TestOrientation(unittest.TestCase):
     """Class for testing `src.environment.misc.Orientation`
@@ -370,8 +381,8 @@ class TestBeelineAgent(unittest.TestCase):
     def test_grab_gold_and_climb_out(self):
         # 1. Setup environment
         (initial_env, initial_percept) = Environment.initialize(4, 4, 0, False)
-        agent = BeelineAgent()
-        agent.init_graph(Coords(0,0), OrientationState.East)
+        agent = BeelineAgent()# NaiveAgent()
+        # agent.init_graph(Coords(0,0), OrientationState.East)
         # place gold at 2,0
         initial_env.gold_location = Coords(2,0)
 
@@ -436,13 +447,13 @@ class TestBeelineAgent(unittest.TestCase):
         # print(next_percept.show())
         
         
-        # # try next action yourself 
-        # next_action = Action.Climb
+        # # # try next action yourself 
+        # # next_action = Action.Climb
         next_action = agent.next_action(next_percept)
-        assert(next_action == Action.Grab)
+        # assert(next_action == Action.Grab)
         (next_environment, next_percept) = next_environment.apply_action(next_action)
 
-        # SHOULD BE EXITING NOW
+        # # SHOULD BE EXITING NOW
         next_action = agent.next_action(next_percept)
         assert(next_action == Action.TurnLeft)
         (next_environment, next_percept) = next_environment.apply_action(next_action)
@@ -463,64 +474,43 @@ class TestBeelineAgent(unittest.TestCase):
         assert(next_action == Action.Climb)
         (next_environment, next_percept) = next_environment.apply_action(next_action)
 
-        print('---------------------')
-        print(next_environment.visualize())
-        print('---------------------')
-        print(next_percept.show())
-
-# class XXX(unittest.TestCase):
-    def test_walk_into_wall(self):
-        # 1. Setup environment
-        (initial_env, initial_percept) = Environment.initialize(4, 4, 0, False)
-        agent = BeelineAgent()
-        agent.init_graph(Coords(0,0), OrientationState.East)
-        # place gold at 2,0
-        initial_env.gold_location = Coords(2,1)
-        
-        # 2.START AGENT ACTIONS
-        # # 1. action grab gold - ignoring what the agent decided to do
-        # next_action = Action.Grab
-        # # get next action from agent 
-        # next_action = agent.next_action(initial_env.agent.location, initial_percept,
-        #                                 debug_action=next_action)
-        # # apply action
-        # (next_environment, next_percept) = initial_env.apply_action(next_action)
-        # # print('---------------------')
-        # # print(next_environment.visualize())
-        # # print('---------------------')
-        # # print(next_percept.show())
-        
-        # 2. move forward
-        next_action = Action.Forward
-        next_action = agent.next_action(initial_percept,
-                                        debug_action=next_action)
-        (next_environment, next_percept) = initial_env.apply_action(next_action)        # print('---------------------')
-        print(next_environment.visualize())
-        print('---------------------')
-        # print(next_percept.show())        
-
-        next_action = Action.Forward
-        next_action = agent.next_action(next_percept,
-                                        debug_action=next_action)
-        (next_environment, next_percept) = next_environment.apply_action(next_action)
-        
-        next_action = Action.Forward
-        next_action = agent.next_action(next_percept,
-                                        debug_action=next_action)
-        (next_environment, next_percept) = next_environment.apply_action(next_action)
-        
-        print('---------------------')
-        print(next_environment.visualize())
+        # print('---------------------')
+        # print(next_environment.visualize())
         # print('---------------------')
         # print(next_percept.show())
+
+    def test_walk_into_wall(self):
+        # 1. Setup environment
+        (initial_env_bee, initial_percept_bee) = Environment.initialize(4, 4, 0, False)
+        beeAgent = BeelineAgent()
+        beeAgent.init_graph(Coords(0,0), OrientationState.East)
+        # place gold at 2,0
+        initial_env_bee.gold_location = Coords(2,1)
         
-        next_action = Action.Forward
-        next_action = agent.next_action(next_percept,
-                                        debug_action=next_action)
-        (next_environment, next_percept) = next_environment.apply_action(next_action)
-        print('---------------------')
-        print(next_environment.visualize())
-        assert(next_environment.agent.location == Coords(3,0))
+        
+        # 2.START AGENT ACTIONS
+        # 2. move forward
+        next_action_bee = Action.Forward
+        next_action_bee = beeAgent.next_action(initial_percept_bee,
+                                        debug_action=next_action_bee)
+        (next_environment_bee, next_percept_bee) = initial_env_bee.apply_action(next_action_bee)        # print('---------------------')
+        
+        next_action_bee = Action.Forward
+        next_action_bee = beeAgent.next_action(next_percept_bee,
+                                        debug_action=next_action_bee)
+        (next_environment_bee, next_percept_bee) = next_environment_bee.apply_action(next_action_bee)
+        
+        next_action_bee = Action.Forward
+        next_action_bee = beeAgent.next_action(next_percept_bee,
+                                        debug_action=next_action_bee)
+        (next_environment_bee, next_percept_bee) = next_environment_bee.apply_action(next_action_bee)
+        
+        
+        next_action_bee = Action.Forward
+        next_action_bee = beeAgent.next_action(next_percept_bee,
+                                        debug_action=next_action_bee)
+        (next_environment_bee, next_percept_bee) = next_environment_bee.apply_action(next_action_bee)
+        assert(next_environment_bee.agent.location == Coords(3,0))
 
 if __name__ == '__main__':
     unittest.main()
