@@ -57,3 +57,637 @@ Ran the code changing the pit probability to `0.2`, and ran until `NäiveAgent` 
 Ran the code, keeping the pit probability to `0.2`, and ran until `NäiveAgent` grabs the gold and climbs out of the cave.
 
 ![](images/scenario3.png)
+
+# Assignment 2
+
+## Results
+
+### Scenario 1 - Agent finds gold and follows exit path
+
+```
+Action:  TurnRight | Agent Orientation:  South
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|    |  G |    |    |
+01|A   |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  TurnLeft | Agent Orientation:  East
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|    |  G |    |    |
+01|A   |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  TurnLeft | Agent Orientation:  North
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|    |  G |    |    |
+01|A   |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  Forward | Agent Orientation:  North
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|A   |  G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  TurnLeft | Agent Orientation:  West
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|A   |  G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  TurnRight | Agent Orientation:  North
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|A   |  G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  Shoot | Agent Orientation:  North
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|A   |  G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -11
+
+Action:  TurnLeft | Agent Orientation:  West
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|A   |  G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  Shoot | Agent Orientation:  West
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|A   |  G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  TurnRight | Agent Orientation:  North
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|A   |  G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  TurnRight | Agent Orientation:  East
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|A   |  G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  TurnLeft | Agent Orientation:  North
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|A   |  G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  TurnRight | Agent Orientation:  East
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|A   |  G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  Forward | Agent Orientation:  East
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|    |A G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  Grab | Agent Orientation:  East
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|    |A G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  TurnLeft | Agent Orientation:  North
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|    |A G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  TurnLeft | Agent Orientation:  West
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|    |A G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  Forward | Agent Orientation:  West
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|A G |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  TurnLeft | Agent Orientation:  South
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|A G |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  Forward | Agent Orientation:  South
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|    |    |    |    |
+01|A G |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  TurnRight | Agent Orientation:  West
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|    |    |    |    |
+01|A G |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+
+Action:  Climb | Agent Orientation:  West
+  ---------------------
+04|    |    |   W| P  |
+03|    |    |    |    |
+02|    |    |    |    |
+01|A G |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: True| Reward: 999
+
+Total reward:  968.0
+```
+
+### Scenario 2 - Agent finds gold, follows exact exit path
+
+In this scenario, the agent finds the gold and the optimal exit path chosen is the one that it took to get to the gold, except any unnecessary turns or other actions. This means that if two adjacent squares are in the path, but weren't visited successively, the agent will follow the 'long' path from one to the other. See example below:
+
+```
+Action:  TurnLeft | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |    |    |    |
+01|A   |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|A   |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnLeft | Agent Orientation:  West
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|A   |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnLeft | Agent Orientation:  South
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|A   |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnRight | Agent Orientation:  West
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|A   |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  West
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|A   |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: True| Scream: False| Terminated: False| Reward: -1
+Action:  TurnRight | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|A   |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnLeft | Agent Orientation:  West
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|A   |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnRight | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|A   |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnRight | Agent Orientation:  East
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|A   |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnLeft | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|A   |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Shoot | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|A   |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -11
+Action:  TurnRight | Agent Orientation:  East
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|A   |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  East
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |A   |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnLeft | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |A   |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Shoot | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |A   |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnLeft | Agent Orientation:  West
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |A   |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnLeft | Agent Orientation:  South
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |A   |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Shoot | Agent Orientation:  South
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |A   |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  South
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |    |    |    |
+01|    |A   |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Shoot | Agent Orientation:  South
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |    |    |    |
+01|    |A   |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  South
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |    |    |    |
+01|    |A   |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: True| Scream: False| Terminated: False| Reward: -1
+Action:  TurnLeft | Agent Orientation:  East
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |    |    |    |
+01|    |A   |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  East
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |    |    |    |
+01|    |    |A   |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnLeft | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |    |    |    |
+01|    |    |A   |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |  G |    |
+02|    |    |A   |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: False| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |A G |    |
+02|    |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: True| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Grab | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |A G |    |
+02|    |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: True| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnLeft | Agent Orientation:  West
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |A G |    |
+02|    |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: True| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnLeft | Agent Orientation:  South
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |A G |    |
+02|    |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: True| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  South
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|    |    |A G |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  South
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|    |    |    |    |
+01|    |    |A G |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnRight | Agent Orientation:  West
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|    |    |    |    |
+01|    |    |A G |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  West
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|    |    |    |    |
+01|    |A G |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnRight | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|    |    |    |    |
+01|    |A G |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  North
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|    |A G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnRight | Agent Orientation:  East
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|    |A G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnRight | Agent Orientation:  South
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|    |A G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnRight | Agent Orientation:  West
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|    |A G |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  West
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|A G |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnLeft | Agent Orientation:  South
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|A G |    |    |    |
+01|    |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Forward | Agent Orientation:  South
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|    |    |    |    |
+01|A G |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  TurnRight | Agent Orientation:  West
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|    |    |    |    |
+01|A G |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: False| Reward: -1
+Action:  Climb | Agent Orientation:  West
+  ---------------------
+04|    |   W| P  |    |
+03|    |    |    |    |
+02|    |    |    |    |
+01|A G |    |    |    |
+  ---------------------
+    01   02   03   04
+| Stench: False| Breeze: False| Glitter: True| Bump: False| Scream: False| Terminated: True| Reward: 999
+Total reward:  946.0
+```

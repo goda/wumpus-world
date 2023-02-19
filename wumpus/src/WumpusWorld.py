@@ -27,7 +27,6 @@ class WumpusWorld():
                 print("Action: ", str(next_action.name), "| Agent Orientation: ", next_environment.agent.orientation.state.name)
                 print(next_environment.visualize())
                 print(next_percept.show())
-            sec = input('Let us wait for user input. Let me know how many seconds to sleep now.\n')
 
             total_reward = next_percept.reward + \
                 (run_episode(next_environment, 

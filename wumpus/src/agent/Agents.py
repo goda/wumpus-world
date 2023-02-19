@@ -148,7 +148,20 @@ class BeelineAgent(NaiveAgent):
     
     def get_next_node(self, 
                      current_node: WumpusNode, 
-                     current_action: Action):
+                     current_action: Action) -> WumpusNode:
+        """Gets the next `WumpusNode` that the agent will be in,
+        based on the `current_node` and `current_action`. This is to update 
+        where the agent is physically in the game before it produces a next action
+
+        Args:
+            current_node (WumpusNode): The current node where the agent is before the 
+            `current_action` is applied
+            current_action (Action): The current action that was taken by the agent and 
+            needs to be applied to the mental model of the agent's graph
+
+        Returns:
+            (WumpusNode): Where the agent is after the `current_action` is carried out
+        """
         orientation = Orientation(current_node.orientation_state)
         if current_action in [Action.TurnLeft, Action.TurnRight]:
             orientation.turn(current_action)
@@ -178,7 +191,6 @@ class BeelineAgent(NaiveAgent):
                       current_node.location.y + y_delta)
         return new_location
         
-    # GRAPH based functions
     def init_graph(self, 
                    location: Coords, 
                    orientation_state: OrientationState) -> None:
@@ -186,9 +198,9 @@ class BeelineAgent(NaiveAgent):
         n = WumpusNode(location, orientation_state)
         self.graph.add_node(n)
         self.current_node = n
+
         
     def update_graph(self, next_node: WumpusNode, action: Action) -> None:
-        # edge = WumpusEdge(next_node.orientation_state)
         edge = WumpusEdge(action)
         self.graph.add_edge(self.current_node,
                             next_node,
