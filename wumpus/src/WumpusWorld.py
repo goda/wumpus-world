@@ -1,6 +1,6 @@
 from wumpus.src.environment.Environments import Environment
 from wumpus.src.environment.Environments import Percept
-from wumpus.src.agent.Agents import NaiveAgent
+from wumpus.src.agent.Agents import BeelineAgent, NaiveAgent
 
 
 class WumpusWorld():
@@ -27,6 +27,8 @@ class WumpusWorld():
                 print("Action: ", str(next_action.name), "| Agent Orientation: ", next_environment.agent.orientation.state.name)
                 print(next_environment.visualize())
                 print(next_percept.show())
+            sec = input('Let us wait for user input. Let me know how many seconds to sleep now.\n')
+
             total_reward = next_percept.reward + \
                 (run_episode(next_environment, 
                             agent, 
@@ -37,6 +39,6 @@ class WumpusWorld():
                                                                 self.grid_height,
                                                                 self.pit_prob,
                                                                 self.allow_climb_without_gold)
-        agent = NaiveAgent()
+        agent = BeelineAgent()
         total_reward = run_episode(initial_env, agent, initial_percept)
         print("Total reward: ", str(total_reward))     

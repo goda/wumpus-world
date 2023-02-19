@@ -44,10 +44,14 @@ class BeelineAgent(NaiveAgent):
     current_action: Action = None
     exit_path_actions: List[Action] = None
     
-    def __init__(self) -> None:
+    def __init__(self, 
+                 init_coords: Coords = Coords(0,0),
+                 init_orientation: OrientationState = OrientationState.East) -> None:
         super().__init__()
+        self.has_gold = False
+        self.init_graph(init_coords, init_orientation)
         
-    def next_action(self, location: Coords, percept: Percept,
+    def next_action(self, percept: Percept,
                     debug_action: Action = None) -> Action:
         # if agent has gold, it should be following its path
         # out using what it remembered from its graph
@@ -79,8 +83,8 @@ class BeelineAgent(NaiveAgent):
             next_action = debug_action if debug_action is not None else self.random_action(allowed_actions)
         
         # need to update the graph based on current_action
-        next_node = self.get_next_node(location, self.current_node,
-                                            self.current_action)
+        next_node = self.get_next_node(self.current_node,
+                                       self.current_action) if percept.bump == False else None
 
         if next_node is not None:
             existing_node = self.graph.find_node(next_node)
@@ -143,27 +147,45 @@ class BeelineAgent(NaiveAgent):
 
     
     def get_next_node(self, 
-                     new_location: Coords, 
                      current_node: WumpusNode, 
                      current_action: Action):
         orientation = Orientation(current_node.orientation_state)
         if current_action in [Action.TurnLeft, Action.TurnRight]:
             orientation.turn(current_action)
             return WumpusNode(current_node.location, orientation.state)
-        elif current_action == Action.Forward and new_location != current_node.location:
+        elif current_action == Action.Forward: 
+            new_location = self.forward(current_node)
             return WumpusNode(new_location, current_node.orientation_state)
         
         return None
             
-                                
-    def init_graph(self, location: Coords, orientation_state: OrientationState) -> None:
-        self.graph = WumpusDiGraph()
+    def forward(self, current_node: WumpusNode) -> Coords:        
+        """Assumes a forward move from `current_node` and that it wouldn't
+        result in moving off the board, so caller would need to make sure that's true
+        """
+        x_delta = 0
+        y_delta = 0
+        if current_node.orientation_state == OrientationState.West:
+            x_delta = -1
+        elif current_node.orientation_state  == OrientationState.East:
+            x_delta = 1
+        elif current_node.orientation_state  == OrientationState.North:
+            y_delta = 1
+        elif current_node.orientation_state  == OrientationState.South:
+            y_delta = -1
         
+        return Coords(current_node.location.x + x_delta, 
+                      current_node.location.y + y_delta)
+    
+    # GRAPH based functions
+    def init_graph(self, 
+                   location: Coords, 
+                   orientation_state: OrientationState) -> None:
+        self.graph = WumpusDiGraph()
         n = WumpusNode(location, orientation_state)
         self.graph.add_node(n)
         self.current_node = n
         
-    
     def update_graph(self, next_node: WumpusNode, action: Action) -> None:
         # edge = WumpusEdge(next_node.orientation_state)
         edge = WumpusEdge(action)
