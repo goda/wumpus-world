@@ -42,6 +42,7 @@ class BeelineAgent(NaiveAgent):
     percept: Percept
     current_node: WumpusNode
     current_action: Action = None
+    exit_path_actions: List[Action] = None
     
     def __init__(self) -> None:
         super().__init__()
@@ -50,20 +51,34 @@ class BeelineAgent(NaiveAgent):
                     debug_action: Action = None) -> Action:
         # if agent has gold, it should be following its path
         # out using what it remembered from its graph
+        next_action = None
+        if self.current_action == Action.Grab:
+            self.exit_path_actions = self.determine_exit_path()
+        if self.has_gold:
+            next_action = self.exit_path_actions.pop(0)
+        elif percept.glitter:
+            self.has_gold = True
+            next_action = Action.Grab
         
-        
-        allowed_actions = Action.get_all()
-        allowed_actions.remove(Action.Climb)
-        
-        # only allow grab action from random pool of actions if glitter sensed
-        # or agent doesn't have the gold
-        if percept.glitter == False or self.has_gold:
-            allowed_actions.remove(Action.Grab)
+        # if next_action is none - we are not on exit path yet, and no gold
+        # in sight - random action ensuing
+        if next_action is None:
+            allowed_actions = Action.get_all()
+            allowed_actions.remove(Action.Climb)
             
-        if self.current_node.location == Coords(0,0) and self.has_gold:
-            allowed_actions.append(Action.Climb)
+            # only allow grab action from random pool of actions if glitter sensed
+            # or agent doesn't have the gold
+            if percept.glitter == False or self.has_gold:
+                allowed_actions.remove(Action.Grab)
+                
+            if self.current_node.location == Coords(0,0) and self.has_gold:
+                allowed_actions.append(Action.Climb)
+            
+            
+            self.percept = percept # not sure if we need this
+            next_action = debug_action if debug_action is not None else self.random_action(allowed_actions)
         
-        # need to add the move/action to the graph
+        # need to update the graph based on current_action
         next_node = self.get_next_node(location, self.current_node,
                                             self.current_action)
 
@@ -73,49 +88,59 @@ class BeelineAgent(NaiveAgent):
                 
             self.update_graph(next_node, self.current_action)
             self.current_node = next_node
-
-        self.percept = percept # not sure if we need this
         
-        self.current_action = debug_action if debug_action is not None else self.random_action(allowed_actions)
-        return self.current_action
+        # return next_Action to the game
+        self.current_action = next_action
+        return next_action
           
-    # assuming 
-    def determine_shortest_path(self) -> dict:
+    def determine_shortest_path(self) -> list:
+        """Uses builtin shortest_path method to get the 
+        shortest path from the origin, to the current node where 
+        the agent is
+        """
         starting_node = WumpusNode(Coords(0,0), OrientationState.East)
         shortest_path = nx.shortest_path(self.graph, starting_node, self.current_node)
-        for n in shortest_path:
-            print('___ ', n)
         return shortest_path
     
-    def determine_exit_path(self):
+    def determine_exit_path(self) -> List[Action]:
+        """Function to determine set of actions to exit game safely. 
+        Let's retrace the steps back using the shortest path
+        For now we will assume that we will follow the shortest path
+        as found by the agent, without using x,y coordinates and connect
+        physically adjacent squares unless the agent visited them directly
+        """
         shortest_path = self.determine_shortest_path()
-        # print(shortest_path[-1])
-        new_graph = WumpusDiGraph()
+        reverse_graph = WumpusDiGraph()
         prev_reverse_node = None
         prev_node = None
-        print('dtermening')
         for i in range(len(shortest_path)-1, -1, -1):
-            print(shortest_path[i])
             node: WumpusNode = shortest_path[i]
             reverse_node = WumpusNode(node.location,
                                       OrientationState.opposite_orientation(node.orientation_state))
             if prev_node is None:
-                print('preve_node is none')
-                new_graph.add_node(reverse_node)
-                prev_node = node
-                prev_reverse_node = reverse_node
+                reverse_graph.add_node(reverse_node)
             else:
-                new_graph.add_node(reverse_node)                
+                reverse_graph.add_node(reverse_node)                
                 edge_object = self.graph.get_edge_data(node, prev_node)
-                print(edge_object['object'])
                 edge:WumpusEdge = edge_object['object']
-                new_graph.add_edge(prev_reverse_node, 
+                reverse_graph.add_edge(prev_reverse_node, 
                                    reverse_node,
                                    object = WumpusEdge(Action.opposite_turn(edge.action)))
-                prev_reverse_node = reverse_node
-                prev_node = node
+            
+            prev_reverse_node = reverse_node
+            prev_node = node
         
-        new_graph.display_graph()
+        exit_path_actions: List[Action] = []
+        exit_path_actions.append(Action.TurnLeft)
+        exit_path_actions.append(Action.TurnLeft)
+        for e in reverse_graph.edges(data=True):
+            edge: WumpusEdge = e[2]['object']
+            exit_path_actions.append(edge.action)
+        
+        # last action is climb out
+        exit_path_actions.append(Action.Climb)
+        return exit_path_actions
+
     
     def get_next_node(self, 
                      new_location: Coords, 

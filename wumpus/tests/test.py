@@ -361,43 +361,41 @@ class TestBeelineAgent(unittest.TestCase):
         (initial_env, initial_percept) = Environment.initialize(4, 4, 0, False)
         agent = BeelineAgent()
         agent.init_graph(Coords(0,0), OrientationState.East)
-        # place gold at agent location
-        initial_env.gold_location = initial_env.agent.location
+        # place gold at 2,0
+        initial_env.gold_location = Coords(2,0)
 
         # 2.START AGENT ACTIONS
-        # 1. action grab gold - ignoring what the agent decided to do
-        next_action = Action.Grab
-        # get next action from agent 
-        next_action = agent.next_action(initial_env.agent.location, initial_percept,
-                                        debug_action=next_action)
-        # apply action
-        (next_environment, next_percept) = initial_env.apply_action(next_action)
-        # print('---------------------')
-        # print(next_environment.visualize())
-        # print('---------------------')
-        # print(next_percept.show())
-
+        # # 1. action grab gold - ignoring what the agent decided to do
+        # next_action = Action.Grab
+        # # get next action from agent 
+        # next_action = agent.next_action(initial_env.agent.location, initial_percept,
+        #                                 debug_action=next_action)
+        # # apply action
+        # (next_environment, next_percept) = initial_env.apply_action(next_action)
+        # # print('---------------------')
+        # # print(next_environment.visualize())
+        # # print('---------------------')
+        # # print(next_percept.show())
         
         # 2. move forward
         next_action = Action.Forward
-        next_action = agent.next_action(next_environment.agent.location, next_percept,
-                                        debug_action=next_action)  
+        next_action = agent.next_action(initial_env.agent.location, initial_percept,
+                                        debug_action=next_action)
         
         # action move 
         # apply action
-        (next_environment, next_percept) = next_environment.apply_action(next_action)
-        # print('---------------------')
+        (next_environment, next_percept) = initial_env.apply_action(next_action)        # print('---------------------')
         # print(next_environment.visualize())
         # print('---------------------')
         # print(next_percept.show())        
-
 
         # action -  turn around 
         next_action = Action.TurnLeft
         next_action = agent.next_action(next_environment.agent.location, next_percept,
                                         debug_action=next_action)        
         (next_environment, next_percept) = next_environment.apply_action(next_action)
-
+        # agent.graph.display_graph()
+        
         # apply action
         next_action = Action.TurnLeft
         next_action = agent.next_action(next_environment.agent.location, next_percept,
@@ -421,22 +419,45 @@ class TestBeelineAgent(unittest.TestCase):
                                         debug_action=next_action)
                 
         (next_environment, next_percept) = next_environment.apply_action(next_action)
-        # print('---------------------')
-        # print(next_environment.visualize())
-        # print('---------------------')
-        # print(next_percept.show())
+        print('---------------------')
+        print(next_environment.visualize())
+        print('---------------------')
+        print(next_percept.show())
         
         
-        # # try climb out 
-        next_action = Action.Climb
-        next_action = agent.next_action(next_environment.agent.location, next_percept,
-                                        debug_action=next_action)
-                
+        # # try next action yourself 
+        # next_action = Action.Climb
+        next_action = agent.next_action(next_environment.agent.location, next_percept)
+        assert(next_action == Action.Grab)
         (next_environment, next_percept) = next_environment.apply_action(next_action)
 
-        agent.graph.display_graph()
-        # agent.determine_shortest_path()   
-        agent.determine_exit_path()  
+        # SHOULD BE EXITING NOW
+        next_action = agent.next_action(next_environment.agent.location, next_percept)
+        print(next_action.name)
+        assert(next_action == Action.TurnLeft)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        
+        next_action = agent.next_action(next_environment.agent.location, next_percept)
+        assert(next_action == Action.TurnLeft)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        
+        next_action = agent.next_action(next_environment.agent.location, next_percept)
+        assert(next_action == Action.Forward)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        
+        next_action = agent.next_action(next_environment.agent.location, next_percept)
+        assert(next_action == Action.Forward)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        
+        next_action = agent.next_action(next_environment.agent.location, next_percept)
+        assert(next_action == Action.Climb)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+
+        print('---------------------')
+        print(next_environment.visualize())
+        print('---------------------')
+        print(next_percept.show())
+        # agent.graph.display_graph()
 
 if __name__ == '__main__':
     unittest.main()

@@ -27,6 +27,9 @@ class Action(IntEnum):
             return Action.TurnRight
 
         return action
+    
+    def __str__(self) -> str:
+        return self.name
 
 class Percept():
     """A class to hold the percept as would be sensed by the Agent
