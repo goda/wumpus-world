@@ -345,8 +345,6 @@ class TestWumpusNodeAndEdge(unittest.TestCase):
     def test_find_node(self):
         assert(self.G.find_node_location(Coords(1,1)) is not None)
         assert(self.G.find_node_location(Coords(3,3)) is None)
-        
-
 
 class TestBeelineAgent(unittest.TestCase):
     
@@ -490,6 +488,201 @@ class TestBeelineAgent(unittest.TestCase):
                                         debug_action=next_action_bee)
         (next_environment_bee, next_percept_bee) = next_environment_bee.apply_action(next_action_bee)
         assert(next_environment_bee.agent.location == Coords(3,0))
+        
+    def test_zig_zag_route(self):
+        """Tests zig-zag walk and whether the agent
+        will connect adjacent nodes that it didn't traverse directly
+        """
+        
+        # 1. Setup environment
+        (initial_env_bee, initial_percept_bee) = Environment.initialize(4, 4, 0, False)
+        beeAgent = BeelineAgent()
+        beeAgent.init_graph(Coords(0,0), OrientationState.East)
+        # place gold at 2,0
+        initial_env_bee.gold_location = Coords(0,2)
+        
+        
+        # 2.START AGENT ACTIONS
+        # 2. move forward
+        next_action = Action.Forward
+        next_action = beeAgent.next_action(initial_percept_bee,
+                                        debug_action=next_action)
+        (next_environment, next_percept) = initial_env_bee.apply_action(next_action)        # print('---------------------')
+        
+        next_action = Action.TurnLeft
+        next_action = beeAgent.next_action(next_percept,
+                                        debug_action=next_action)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        
+        next_action = Action.Forward
+        next_action = beeAgent.next_action(next_percept,
+                                        debug_action=next_action)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        assert(next_environment.agent.location == Coords(1,1))
 
+        
+        next_action = Action.TurnLeft
+        next_action = beeAgent.next_action(next_percept,
+                                        debug_action=next_action)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+
+        next_action = Action.Forward
+        next_action = beeAgent.next_action(next_percept,
+                                        debug_action=next_action)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        assert(next_environment.agent.location == Coords(0,1))
+        # beeAgent.graph.display_graph()
+
+        next_action = Action.Forward
+        next_action = beeAgent.next_action(next_percept,
+                                        debug_action=next_action)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        assert(next_environment.agent.location == Coords(0,1))
+        # beeAgent.graph.display_graph()
+
+        # turn north so we can grab gold in next cell
+        next_action = Action.TurnRight
+        next_action = beeAgent.next_action(next_percept,
+                                        debug_action=next_action)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        assert(next_environment.agent.location == Coords(0,1))
+        # beeAgent.graph.display_graph()
+
+        next_action = Action.Forward
+        next_action = beeAgent.next_action(next_percept,
+                                        debug_action=next_action)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        assert(next_environment.agent.location == Coords(0,2))
+        
+        # beeAgent.graph.display_graph()
+
+        # agent should grab now
+        next_action = beeAgent.next_action(next_percept,
+                                        debug_action=next_action)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        assert(next_environment.agent.location == Coords(0,2))                        
+        assert(next_action == Action.Grab)
+
+        # beeAgent.graph.display_graph()
+        
+        # SHOULD BE EXITING NOW
+        next_action = beeAgent.next_action(next_percept)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+
+        next_action = beeAgent.next_action(next_percept)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+
+        next_action = beeAgent.next_action(next_percept)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        
+        next_action = beeAgent.next_action(next_percept)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        
+        next_action = beeAgent.next_action(next_percept)
+        (next_environment, next_percept) = next_environment.apply_action(next_action)
+        
+    def test_failing_route(self):
+        """Tests scenario where gold is at 1,1 and agent goes to it from 1,2 and 
+        is not able to go back to starting point via 0,1 which it also traversed
+        """
+        
+        # 1. Setup environment
+        (env, percept) = Environment.initialize(4, 4, 0, False)
+        beeAgent = BeelineAgent()
+        beeAgent.init_graph(Coords(0,0), OrientationState.East)
+        # place gold at 2,0
+        env.gold_location = Coords(1,1)
+        env.wumpus_location = Coords(3,3)
+        
+        actions_to_gold = [
+            Action.Forward,
+            Action.Forward,
+            Action.Shoot,
+            Action.TurnLeft,
+            Action.TurnRight,
+            Action.TurnLeft,
+            Action.Shoot,
+            Action.TurnRight,
+            Action.TurnRight,
+            Action.Forward,
+            Action.Shoot,
+            Action.TurnRight,
+            Action.TurnRight,
+            Action.TurnLeft,
+            Action.Forward,
+            Action.Forward,
+            Action.Forward,
+            Action.TurnRight,
+            Action.Shoot,
+            Action.Forward,
+            Action.TurnLeft,
+            Action.Forward,
+            Action.TurnLeft,
+            Action.TurnRight,
+            Action.Forward,
+            Action.Shoot,
+            Action.TurnLeft,
+            Action.Shoot,
+            Action.Shoot,
+            Action.Shoot,
+            Action.Forward,
+            Action.TurnLeft,
+            Action.Shoot,
+            Action.TurnLeft,
+            Action.TurnLeft,
+            Action.TurnRight,
+            Action.TurnRight,
+            Action.Forward,
+            Action.Shoot,
+            Action.Forward,
+            Action.TurnLeft,
+            Action.Shoot,
+            Action.TurnRight,
+            Action.TurnRight,
+            Action.TurnRight,
+            Action.TurnRight,
+            Action.TurnRight,
+            Action.Shoot,
+            Action.Shoot,
+            Action.TurnLeft,
+            Action.Forward,
+            Action.Forward,
+            Action.Shoot,
+            Action.TurnRight,
+            Action.TurnRight,
+            Action.TurnRight,
+            Action.Forward,
+            Action.TurnLeft,
+            Action.Shoot,
+            Action.Forward,
+            Action.Grab         
+        ]
+        # 2.START AGENT ACTIONS
+        for a in actions_to_gold:
+            next_action = a
+            next_action = beeAgent.next_action(percept,
+                                            debug_action=next_action)
+            (env, percept) = env.apply_action(next_action)        # print('---------------------')
+            # print("Action: ", str(next_action.name), "| Agent Orientation: ", env.agent.orientation.state.name)
+            # print(env.visualize())
+            # print(percept.show())
+        
+        # agent should grab now
+        next_action = beeAgent.next_action(percept,
+                                        debug_action=next_action)
+        (env, percept) = env.apply_action(next_action)
+
+        next_action = beeAgent.next_action(percept,
+                                debug_action=next_action)
+        (env, percept) = env.apply_action(next_action)
+        # SHOULD BE EXITING NOW
+        for _ in range(0,len(beeAgent.exit_path_actions)):
+            next_action = beeAgent.next_action(percept)
+            (env, percept) = env.apply_action(next_action)
+            # print(env.visualize())
+            # print(percept.show())
+
+        assert(percept.reward == 999)
+        
 if __name__ == '__main__':
     unittest.main()

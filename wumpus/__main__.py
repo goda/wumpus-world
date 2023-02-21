@@ -10,5 +10,5 @@ if __name__ == '__main__':
         if opt in ("-v", "--visualize"):
             visualize = True
             
-    w = WumpusWorld(4, 4, 0.02, False)
+    w = WumpusWorld(4, 4, 0.2, False)
     w.main(visualize)    

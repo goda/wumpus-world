@@ -1,9 +1,9 @@
+import copy
 import random
 from typing import List
 from wumpus.src.agent.Misc import WumpusDiGraph
 from wumpus.src.environment.Misc import Action, Coords, Orientation, OrientationState, Percept, WumpusEdge, WumpusNode
 import networkx as nx
-import matplotlib.pyplot as plt
 
 class Agent:
     """A class representing the Agent and its base implementation
@@ -53,35 +53,6 @@ class BeelineAgent(NaiveAgent):
         
     def next_action(self, percept: Percept,
                     debug_action: Action = None) -> Action:
-        # if agent has gold, it should be following its path
-        # out using what it remembered from its graph
-        next_selected_action = None
-        if self.current_action == Action.Grab:
-            self.exit_path_actions = self.determine_exit_path()
-        if self.has_gold:
-            next_selected_action = self.exit_path_actions.pop(0)
-        elif percept.glitter:
-            self.has_gold = True
-            next_selected_action = Action.Grab
-        
-        # if next_action is none - we are not on exit path yet, and no gold
-        # in sight - random action ensuing
-        if next_selected_action is None:
-            allowed_actions = Action.get_all()
-            allowed_actions.remove(Action.Climb)
-            
-            # only allow grab action from random pool of actions if glitter sensed
-            # or agent doesn't have the gold
-            if percept.glitter == False or self.has_gold:
-                allowed_actions.remove(Action.Grab)
-                
-            if self.current_node.location == Coords(0,0) and self.has_gold:
-                allowed_actions.append(Action.Climb)
-            
-            
-            self.percept = percept # not sure if we need this
-            next_selected_action = debug_action if debug_action is not None else self.random_action(allowed_actions)
-        
         # need to update the graph based on current_action
         next_node = self.get_next_node(self.current_node,
                                        self.current_action) if percept.bump == False else None
@@ -92,6 +63,34 @@ class BeelineAgent(NaiveAgent):
                 
             self.update_graph(next_node, self.current_action)
             self.current_node = next_node
+                
+        # if agent has gold, it should be following its path
+        # out using what it remembered from its graph
+        next_selected_action = None
+        if self.current_action == Action.Grab:
+            self.exit_path_actions = self.determine_exit_path()
+        if self.current_node.location == Coords(0,0) and self.has_gold:
+            next_selected_action = Action.Climb            
+        elif self.has_gold:
+            next_selected_action = self.exit_path_actions.pop(0)
+        elif percept.glitter:
+            self.has_gold = True
+            next_selected_action = Action.Grab
+
+        
+        # if next_action is none - we are not on exit path yet, and no gold
+        # in sight - random action ensuing
+        if next_selected_action is None:
+            allowed_actions = Action.get_all()
+            allowed_actions.remove(Action.Climb)
+            
+            # only allow grab action from random pool of actions if glitter sensed
+            # or agent doesn't have the gold
+            if percept.glitter == False or self.has_gold:
+                allowed_actions.remove(Action.Grab)            
+            
+            self.percept = percept # not sure if we need this
+            next_selected_action = debug_action if debug_action is not None else self.random_action(allowed_actions)
         
         # return next_Action to the game
         self.current_action = next_selected_action
@@ -114,6 +113,7 @@ class BeelineAgent(NaiveAgent):
         physically adjacent squares unless the agent visited them directly
         """
         shortest_path = self.determine_shortest_path()
+        first_node = None
         reverse_graph = WumpusDiGraph()
         prev_reverse_node = None
         prev_node = None
@@ -122,6 +122,7 @@ class BeelineAgent(NaiveAgent):
             reverse_node = WumpusNode(node.location,
                                       OrientationState.opposite_orientation(node.orientation_state))
             if prev_node is None:
+                first_node = reverse_node
                 reverse_graph.add_node(reverse_node)
             else:
                 reverse_graph.add_node(reverse_node)                
@@ -134,9 +135,12 @@ class BeelineAgent(NaiveAgent):
             prev_reverse_node = reverse_node
             prev_node = node
         
+        
         exit_path_actions: List[Action] = []
-        exit_path_actions.append(Action.TurnLeft)
-        exit_path_actions.append(Action.TurnLeft)
+        exit_path_actions = self.get_required_turn_actions_to_align(
+            self.current_node.orientation_state,
+            first_node.orientation_state
+        )
         for e in reverse_graph.edges(data=True):
             edge: WumpusEdge = e[2]['object']
             exit_path_actions.append(edge.action)
@@ -199,9 +203,156 @@ class BeelineAgent(NaiveAgent):
         self.graph.add_node(n)
         self.current_node = n
 
+    def connect_adjacent_nodes(self, graph: WumpusDiGraph, from_node: WumpusNode,
+                               to_node: WumpusNode):
+        """Connects the `from_node` to the `to_node` provided that they're adjacent
+        nodes (neighbouring) by figuring out the actions required to go `from_node` to
+        `to_node`, last one being the forward. This method takes in a WumpusDiGraph object,
+        along with two WumpusNode objects representing the starting and ending nodes of the path.
+
+        This method builds up intermediate nodes to create a path from the from_node to the to_node.
+        First, it determines the required turn actions to move forward from from_node to to_node. 
+        Then, it iterates over those actions, adding new nodes and edges to the graph as necessary. 
+        If the orientation of the last node in the path is not the same as the to_node, 
+        additional actions are required to align it with the to_node orientation. 
+        The method then adds these required nodes and edges to complete the rotation if necessary. 
+        Finally, it returns the modified graph object.
+
+        Args:
+            graph (WumpusDiGraph): The graph object containing nodes and edges.
+            from_node (WumpusNode): The starting node for the path.
+            to_node (WumpusNode): The ending node for the path.
+        """
+        required_actions = self.get_required_turn_actions_to_move_forward(from_node, to_node)
+        
+        # build up the intermediate nodes
+        o = Orientation(from_node.orientation_state)
+        from_int_node:WumpusNode = from_node
+        to_int_node:WumpusNode = from_node
+        # go through all actions and add the required nodes/edges
+        # to complete the path from_node to to_node 
+        for a in required_actions:
+            o.turn(a)
+            to_int_node = WumpusNode(from_node.location, o.state)
+            graph.add_node(to_int_node)
+            graph.add_edge(from_int_node, 
+                           to_int_node, 
+                           object = WumpusEdge(a))
+            # move along the node pointers
+            from_int_node = to_int_node
+            
+        # now check if orientation of last node isn't the same as the to_node
+        # more actions required before we can connect to it finally
+        required_actions_to_align = self.get_required_turn_actions_to_align(
+            to_int_node.orientation_state,
+            to_node.orientation_state)
+        # go through all actions and add the required nodes/edges
+        # to complete the rotation if necessary
+        o = Orientation(to_int_node.orientation_state)
+        from_int_node:WumpusNode = to_int_node
+        to_int_node:WumpusNode = WumpusNode(to_node.location, o.state)
+        graph.add_edge(from_int_node,
+                       to_int_node,
+                       object = WumpusEdge(Action.Forward))
+        from_int_node = to_int_node
+        for a in required_actions_to_align:
+            o.turn(a)
+            to_int_node = WumpusNode(to_node.location, o.state)
+            graph.add_node(to_int_node)
+            graph.add_edge(from_int_node, 
+                           to_int_node, 
+                           object = WumpusEdge(a))
+            from_int_node = to_int_node
+
+    def get_required_turn_actions_to_move_forward(self, from_node: WumpusNode, 
+                                                  to_node: WumpusNode):
+        orientation_required = OrientationState.East
+        if from_node.location.x == to_node.location.x:
+            if from_node.location.y > to_node.location.y:
+                orientation_required = OrientationState.South
+            else:
+                orientation_required = OrientationState.North
+        else:
+            if from_node.location.x > to_node.location.x:
+                orientation_required = OrientationState.West
+            else:
+                orientation_required = OrientationState.East    
+        
+        return self.get_required_turn_actions_to_align(from_node.orientation_state, 
+                                                       orientation_required)
+
+    def get_required_turn_actions_to_align(self, 
+                                           from_orientation: OrientationState, 
+                                           orientation_required: OrientationState) -> List[Action]:
+        required_turns = from_orientation.value - orientation_required.value
+        if abs(required_turns) == 2:
+            required_actions = [Action.TurnLeft, Action.TurnLeft]
+        elif required_turns == -1:
+            required_actions = [Action.TurnRight]
+        elif required_turns == 1:
+            required_actions = [Action.TurnLeft]
+        elif required_turns == 3:
+            required_actions = [Action.TurnRight]
+        elif required_turns == -3:
+            required_actions = [Action.TurnLeft]
+        else:
+            required_actions = []
+        return required_actions
+        
+        
         
     def update_graph(self, next_node: WumpusNode, action: Action) -> None:
+        """Updates the agent's view of the world and path traveled so far by 
+        linking the `next_node` to the `current_node` since that was where the agent
+        was last.
+        
+        Second part of this is to try and link the `next_node` to all the other nodes
+        that are not current_node (location wise) that might be able to take us 
+        to the `next_node`
+        
+        Args:
+            next_node (WumpusNode): The next location of the agent
+            action (Action): The action that will take the agent from `current_node`
+            to `next_node`
+        """
+        neighbors = self.adjacent_cells(next_node.location)
+        new_graph:WumpusDiGraph = copy.deepcopy(self.graph)
+        for n in neighbors:
+            node:WumpusNode
+            for node in self.graph.nodes:
+                if node.location == n and node != self.current_node:
+                    # nodes_to_connect.append(node)
+                    self.connect_adjacent_nodes(new_graph, node, next_node)
+                
+        self.graph = new_graph
+        
         edge = WumpusEdge(action)
         self.graph.add_edge(self.current_node,
                             next_node,
                             object = edge)
+        
+
+    
+    def adjacent_cells(self, coords: Coords) -> List[Coords]:
+        """Return a list of neighboring cells to the given coordinates.
+
+        Args:
+            coords (Coords): The coordinates of the cell to find neighbors for.
+
+        Returns:
+            List[Coords]: A list of neighboring cells as Coords objects. A cell is
+            considered a neighbor if it is located immediately adjacent to the
+            given coordinates (in a 3x3 grid), but not if it is the same as the
+            given coordinates. Diagonal neighbors are not included.
+
+        Example:
+            >>> adjacent_cells(Coords(1, 1))
+            [Coords(0, 1), Coords(1, 0), Coords(1, 2), Coords(2, 1)]
+        """        
+        neighbors = lambda x, y : [Coords(x2, y2) for x2 in range(x-1, x+2)
+                                    for y2 in range(y-1, y+2)
+                                    if (
+                                        (x != x2 or y != y2) and
+                                        (x == x2 or y == y2) 
+                                        )]
+        return neighbors(coords.x, coords.y)
