@@ -1,5 +1,9 @@
 from enum import IntEnum
-from typing import List, Self
+from typing import List
+from typing import TypeVar
+TAction = TypeVar("TAction", bound="Action")
+TOrientationState = TypeVar("TOrientationState", bound="OrientationState")
+
 
 class Action(IntEnum):
     """An enum class to hold the type of action
@@ -15,12 +19,12 @@ class Action(IntEnum):
     Climb = 6
     
     @staticmethod
-    def get_all() -> List[Self]:
+    def get_all() -> List[TAction]:
         allowed_actions = [Action(x) for x in range(1,7)]
         return allowed_actions
         
     @staticmethod
-    def opposite_turn(action: Self) -> Self:
+    def opposite_turn(action: TAction) -> TAction:
         if action == Action.TurnRight:
             return Action.TurnLeft    
         elif action == Action.TurnLeft:
@@ -97,7 +101,7 @@ class OrientationState(IntEnum):
     West = 3
     
     @staticmethod
-    def opposite_orientation(orientation: Self) -> Self:
+    def opposite_orientation(orientation: TOrientationState) -> TOrientationState:
         return OrientationState((orientation.value + 2) % 4)
 
 

@@ -2,8 +2,9 @@ import copy
 from .Misc import OrientationState
 from .Misc import Orientation
 from .Misc import Coords
-from typing import Self
-
+# from typing import Self
+from typing import TypeVar
+TAgent = TypeVar("TAgent", bound="Agent")
 
 
 class Agent():
@@ -23,7 +24,7 @@ class Agent():
         self.is_alive = is_alive
     
     
-    def forward(self, grid_width: int, grid_height: int) -> Self:        
+    def forward(self, grid_width: int, grid_height: int) -> TAgent:        
         if self.orientation.state == OrientationState.West:
             new_location = Coords(max(0, self.location.x - 1), self.location.y)
         elif self.orientation.state == OrientationState.East:
