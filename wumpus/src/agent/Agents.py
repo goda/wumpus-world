@@ -4,6 +4,8 @@ from typing import List
 from wumpus.src.agent.Misc import WumpusDiGraph
 from wumpus.src.environment.Misc import Action, Coords, Orientation, OrientationState, Percept, WumpusEdge, WumpusNode
 import networkx as nx
+from pomegranate import Node, DiscreteDistribution, BayesianNetwork, ConditionalProbabilityTable
+
 
 class Agent:
     """A class representing the Agent and its base implementation
@@ -21,17 +23,18 @@ class NaiveAgent(Agent):
     without any percept information
 
     """
+
     def __init__(self) -> None:
         pass
 
     def next_action(self, percept: Percept, debug_action: Action = None) -> Action:
         return debug_action if debug_action is not None else Action(random.randint(int(Action.Forward), int(Action.Climb)))
-    
-    
+
     def random_action(self, allowed_actions: List[Action]) -> Action:
         int_actions = [int(a) for a in allowed_actions]
         return Action(random.choice(int_actions))
-    
+
+
 class BeelineAgent(NaiveAgent):
     """A Beeline agent that is able to 'remember' the actions/steps it took
     if it survives and gets to the gold location.
@@ -43,14 +46,14 @@ class BeelineAgent(NaiveAgent):
     current_node: WumpusNode = None
     current_action: Action = None
     exit_path_actions: List[Action] = None
-    
-    def __init__(self, 
-                 init_coords: Coords = Coords(0,0),
+
+    def __init__(self,
+                 init_coords: Coords = Coords(0, 0),
                  init_orientation: OrientationState = OrientationState.East) -> None:
         super().__init__()
         self.has_gold = False
         self.init_graph(init_coords, init_orientation)
-        
+
     def next_action(self, percept: Percept,
                     debug_action: Action = None) -> Action:
         # need to update the graph based on current_action
@@ -60,51 +63,52 @@ class BeelineAgent(NaiveAgent):
         if next_node is not None:
             existing_node = self.graph.find_node(next_node)
             next_node = next_node if existing_node is None else existing_node
-                
+
             self.update_graph(next_node, self.current_action)
             self.current_node = next_node
-                
+
         # if agent has gold, it should be following its path
         # out using what it remembered from its graph
         next_selected_action = None
         if self.current_action == Action.Grab:
             self.exit_path_actions = self.determine_exit_path()
-        if self.current_node.location == Coords(0,0) and self.has_gold:
-            next_selected_action = Action.Climb            
+        if self.current_node.location == Coords(0, 0) and self.has_gold:
+            next_selected_action = Action.Climb
         elif self.has_gold:
             next_selected_action = self.exit_path_actions.pop(0)
         elif percept.glitter:
             self.has_gold = True
             next_selected_action = Action.Grab
 
-        
         # if next_action is none - we are not on exit path yet, and no gold
         # in sight - random action ensuing
         if next_selected_action is None:
             allowed_actions = Action.get_all()
             allowed_actions.remove(Action.Climb)
-            
+
             # only allow grab action from random pool of actions if glitter sensed
             # or agent doesn't have the gold
             if percept.glitter == False or self.has_gold:
-                allowed_actions.remove(Action.Grab)            
-            
-            self.percept = percept # not sure if we need this
-            next_selected_action = debug_action if debug_action is not None else self.random_action(allowed_actions)
-        
+                allowed_actions.remove(Action.Grab)
+
+            self.percept = percept  # not sure if we need this
+            next_selected_action = debug_action if debug_action is not None else self.random_action(
+                allowed_actions)
+
         # return next_Action to the game
         self.current_action = next_selected_action
         return next_selected_action
-          
+
     def determine_shortest_path(self) -> list:
         """Uses builtin shortest_path method to get the 
         shortest path from the origin, to the current node where 
         the agent is
         """
-        starting_node = WumpusNode(Coords(0,0), OrientationState.East)
-        shortest_path = nx.shortest_path(self.graph, starting_node, self.current_node)
+        starting_node = WumpusNode(Coords(0, 0), OrientationState.East)
+        shortest_path = nx.shortest_path(
+            self.graph, starting_node, self.current_node)
         return shortest_path
-    
+
     def determine_exit_path(self) -> List[Action]:
         """Function to determine set of actions to exit game safely. 
         Let's retrace the steps back using the shortest path
@@ -125,17 +129,16 @@ class BeelineAgent(NaiveAgent):
                 first_node = reverse_node
                 reverse_graph.add_node(reverse_node)
             else:
-                reverse_graph.add_node(reverse_node)                
+                reverse_graph.add_node(reverse_node)
                 edge_object = self.graph.get_edge_data(node, prev_node)
-                edge:WumpusEdge = edge_object['object']
-                reverse_graph.add_edge(prev_reverse_node, 
-                                   reverse_node,
-                                   object = WumpusEdge(Action.opposite_turn(edge.action)))
-            
+                edge: WumpusEdge = edge_object['object']
+                reverse_graph.add_edge(prev_reverse_node,
+                                       reverse_node,
+                                       object=WumpusEdge(Action.opposite_turn(edge.action)))
+
             prev_reverse_node = reverse_node
             prev_node = node
-        
-        
+
         exit_path_actions: List[Action] = []
         exit_path_actions = self.get_required_turn_actions_to_align(
             self.current_node.orientation_state,
@@ -144,15 +147,14 @@ class BeelineAgent(NaiveAgent):
         for e in reverse_graph.edges(data=True):
             edge: WumpusEdge = e[2]['object']
             exit_path_actions.append(edge.action)
-        
+
         # last action is climb out
         exit_path_actions.append(Action.Climb)
         return exit_path_actions
 
-    
-    def get_next_node(self, 
-                     current_node: WumpusNode, 
-                     current_action: Action) -> WumpusNode:
+    def get_next_node(self,
+                      current_node: WumpusNode,
+                      current_action: Action) -> WumpusNode:
         """Gets the next `WumpusNode` that the agent will be in,
         based on the `current_node` and `current_action`. This is to update 
         where the agent is physically in the game before it produces a next action
@@ -170,13 +172,13 @@ class BeelineAgent(NaiveAgent):
         if current_action in [Action.TurnLeft, Action.TurnRight]:
             orientation.turn(current_action)
             return WumpusNode(current_node.location, orientation.state)
-        elif current_action == Action.Forward: 
+        elif current_action == Action.Forward:
             new_location = self.forward(current_node)
             return WumpusNode(new_location, current_node.orientation_state)
-        
+
         return None
-            
-    def forward(self, current_node: WumpusNode) -> Coords:        
+
+    def forward(self, current_node: WumpusNode) -> Coords:
         """Assumes a forward move from `current_node` and that it wouldn't
         result in moving off the board, so caller would need to make sure that's true
         """
@@ -184,19 +186,19 @@ class BeelineAgent(NaiveAgent):
         y_delta = 0
         if current_node.orientation_state == OrientationState.West:
             x_delta = -1
-        elif current_node.orientation_state  == OrientationState.East:
+        elif current_node.orientation_state == OrientationState.East:
             x_delta = 1
-        elif current_node.orientation_state  == OrientationState.North:
+        elif current_node.orientation_state == OrientationState.North:
             y_delta = 1
-        elif current_node.orientation_state  == OrientationState.South:
+        elif current_node.orientation_state == OrientationState.South:
             y_delta = -1
-        
-        new_location = Coords(current_node.location.x + x_delta, 
-                      current_node.location.y + y_delta)
+
+        new_location = Coords(current_node.location.x + x_delta,
+                              current_node.location.y + y_delta)
         return new_location
-        
-    def init_graph(self, 
-                   location: Coords, 
+
+    def init_graph(self,
+                   location: Coords,
                    orientation_state: OrientationState) -> None:
         self.graph = WumpusDiGraph()
         n = WumpusNode(location, orientation_state)
@@ -223,24 +225,25 @@ class BeelineAgent(NaiveAgent):
             from_node (WumpusNode): The starting node for the path.
             to_node (WumpusNode): The ending node for the path.
         """
-        required_actions = self.get_required_turn_actions_to_move_forward(from_node, to_node)
-        
+        required_actions = self.get_required_turn_actions_to_move_forward(
+            from_node, to_node)
+
         # build up the intermediate nodes
         o = Orientation(from_node.orientation_state)
-        from_int_node:WumpusNode = from_node
-        to_int_node:WumpusNode = from_node
+        from_int_node: WumpusNode = from_node
+        to_int_node: WumpusNode = from_node
         # go through all actions and add the required nodes/edges
-        # to complete the path from_node to to_node 
+        # to complete the path from_node to to_node
         for a in required_actions:
             o.turn(a)
             to_int_node = WumpusNode(from_node.location, o.state)
             graph.add_node(to_int_node)
-            graph.add_edge(from_int_node, 
-                           to_int_node, 
-                           object = WumpusEdge(a))
+            graph.add_edge(from_int_node,
+                           to_int_node,
+                           object=WumpusEdge(a))
             # move along the node pointers
             from_int_node = to_int_node
-            
+
         # now check if orientation of last node isn't the same as the to_node
         # more actions required before we can connect to it finally
         required_actions_to_align = self.get_required_turn_actions_to_align(
@@ -249,22 +252,22 @@ class BeelineAgent(NaiveAgent):
         # go through all actions and add the required nodes/edges
         # to complete the rotation if necessary
         o = Orientation(to_int_node.orientation_state)
-        from_int_node:WumpusNode = to_int_node
-        to_int_node:WumpusNode = WumpusNode(to_node.location, o.state)
+        from_int_node: WumpusNode = to_int_node
+        to_int_node: WumpusNode = WumpusNode(to_node.location, o.state)
         graph.add_edge(from_int_node,
                        to_int_node,
-                       object = WumpusEdge(Action.Forward))
+                       object=WumpusEdge(Action.Forward))
         from_int_node = to_int_node
         for a in required_actions_to_align:
             o.turn(a)
             to_int_node = WumpusNode(to_node.location, o.state)
             graph.add_node(to_int_node)
-            graph.add_edge(from_int_node, 
-                           to_int_node, 
-                           object = WumpusEdge(a))
+            graph.add_edge(from_int_node,
+                           to_int_node,
+                           object=WumpusEdge(a))
             from_int_node = to_int_node
 
-    def get_required_turn_actions_to_move_forward(self, from_node: WumpusNode, 
+    def get_required_turn_actions_to_move_forward(self, from_node: WumpusNode,
                                                   to_node: WumpusNode):
         orientation_required = OrientationState.East
         if from_node.location.x == to_node.location.x:
@@ -276,13 +279,13 @@ class BeelineAgent(NaiveAgent):
             if from_node.location.x > to_node.location.x:
                 orientation_required = OrientationState.West
             else:
-                orientation_required = OrientationState.East    
-        
-        return self.get_required_turn_actions_to_align(from_node.orientation_state, 
+                orientation_required = OrientationState.East
+
+        return self.get_required_turn_actions_to_align(from_node.orientation_state,
                                                        orientation_required)
 
-    def get_required_turn_actions_to_align(self, 
-                                           from_orientation: OrientationState, 
+    def get_required_turn_actions_to_align(self,
+                                           from_orientation: OrientationState,
                                            orientation_required: OrientationState) -> List[Action]:
         required_turns = from_orientation.value - orientation_required.value
         if abs(required_turns) == 2:
@@ -298,41 +301,37 @@ class BeelineAgent(NaiveAgent):
         else:
             required_actions = []
         return required_actions
-        
-        
-        
+
     def update_graph(self, next_node: WumpusNode, action: Action) -> None:
         """Updates the agent's view of the world and path traveled so far by 
         linking the `next_node` to the `current_node` since that was where the agent
         was last.
-        
+
         Second part of this is to try and link the `next_node` to all the other nodes
         that are not current_node (location wise) that might be able to take us 
         to the `next_node`
-        
+
         Args:
             next_node (WumpusNode): The next location of the agent
             action (Action): The action that will take the agent from `current_node`
             to `next_node`
         """
         neighbors = self.adjacent_cells(next_node.location)
-        new_graph:WumpusDiGraph = copy.deepcopy(self.graph)
+        new_graph: WumpusDiGraph = copy.deepcopy(self.graph)
         for n in neighbors:
-            node:WumpusNode
+            node: WumpusNode
             for node in self.graph.nodes:
                 if node.location == n and node != self.current_node:
                     # nodes_to_connect.append(node)
                     self.connect_adjacent_nodes(new_graph, node, next_node)
-                
+
         self.graph = new_graph
-        
+
         edge = WumpusEdge(action)
         self.graph.add_edge(self.current_node,
                             next_node,
-                            object = edge)
-        
+                            object=edge)
 
-    
     def adjacent_cells(self, coords: Coords) -> List[Coords]:
         """Return a list of neighboring cells to the given coordinates.
 
@@ -348,11 +347,77 @@ class BeelineAgent(NaiveAgent):
         Example:
             >>> adjacent_cells(Coords(1, 1))
             [Coords(0, 1), Coords(1, 0), Coords(1, 2), Coords(2, 1)]
-        """        
-        neighbors = lambda x, y : [Coords(x2, y2) for x2 in range(x-1, x+2)
-                                    for y2 in range(y-1, y+2)
-                                    if (
-                                        (x != x2 or y != y2) and
-                                        (x == x2 or y == y2) 
-                                        )]
+        """
+        def neighbors(x, y): return [Coords(x2, y2) for x2 in range(x-1, x+2)
+                                     for y2 in range(y-1, y+2)
+                                     if (
+            (x != x2 or y != y2) and
+            (x == x2 or y == y2)
+        )]
         return neighbors(coords.x, coords.y)
+
+
+class ProbAgent(BeelineAgent):
+    # """An agent that uses conditional probability when searching for the gold based on the received percept at each action of the game. Its based on the BeelineAgent as it will keep track of the visited nodes and plan optimal route back
+    # """
+    """An agent that uses conditional probability when searching for the gold 
+    based on the received percept at each action of the game. Its based on the 
+    BeelineAgent as it will keep track of the visited nodes and plan optimal route 
+    back
+    """
+    pits_breeze_graph: BayesianNetwork = None
+    wumpus_stench_graph: BayesianNetwork = None
+
+    def __init__(self, grid_width: int = 4,
+                 grid_height: int = 4,
+                 pit_location_prob: float = 0.2,
+                 wumpus_stench_prb: float = 0.1):
+        self.pits_breeze_graph = BayesianNetwork('Pits Breeze')
+        self.wumpus_stench_graph = BayesianNetwork('Wumpus Stench')
+
+    # def prepare_prob_graphs(self, grid_width: int, grid_height: int) -> None:
+    #     grid_locations = [Coords(x,y) for x in range(1,grid_width)
+    #                           for y in range(1, grid_height)]
+    #     pit_dist = DiscreteDistribution()
+    #     pit_dist
+
+    #     guest = DiscreteDistribution({'A': 1./3, 'B': 1./3, 'C': 1./3})
+    #     prize = DiscreteDistribution({'A': 1./3, 'B': 1./3, 'C': 1./3})
+    #     monty = ConditionalProbabilityTable(
+    #     [['A', 'A', 'A', 0.0],
+    #         ['A', 'A', 'B', 0.5],
+    #         ['A', 'A', 'C', 0.5],
+    #         ['A', 'B', 'A', 0.0],
+    #         ['A', 'B', 'B', 0.0],
+    #         ['A', 'B', 'C', 1.0],
+    #         ['A', 'C', 'A', 0.0],
+    #         ['A', 'C', 'B', 1.0],
+    #         ['A', 'C', 'C', 0.0],
+    #         ['B', 'A', 'A', 0.0],
+    #         ['B', 'A', 'B', 0.0],
+    #         ['B', 'A', 'C', 1.0],
+    #         ['B', 'B', 'A', 0.5],
+    #         ['B', 'B', 'B', 0.0],
+    #         ['B', 'B', 'C', 0.5],
+    #         ['B', 'C', 'A', 1.0],
+    #         ['B', 'C', 'B', 0.0],
+    #         ['B', 'C', 'C', 0.0],
+    #         ['C', 'A', 'A', 0.0],
+    #         ['C', 'A', 'B', 1.0],
+    #         ['C', 'A', 'C', 0.0],
+    #         ['C', 'B', 'A', 1.0],
+    #         ['C', 'B', 'B', 0.0],
+    #         ['C', 'B', 'C', 0.0],
+    #         ['C', 'C', 'A', 0.5],
+    #         ['C', 'C', 'B', 0.5],
+    #         ['C', 'C', 'C', 0.0]], [guest, prize])
+
+    #     s1 = Node(guest, name="guest")
+    #     s2 = Node(prize, name="prize")
+    #     s3 = Node(monty, name="monty")
+
+    #     model = BayesianNetwork("Monty Hall Problem")
+    #     model.add_states(s1, s2, s3)
+    #     model.add_edge(s1, s3)
+    #     model.add_edge(s2, s3)
+    #     model.bake()

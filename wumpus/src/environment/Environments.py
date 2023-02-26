@@ -43,8 +43,8 @@ class Environment():
         self.allow_climb_without_gold = allow_climb_without_gold
 
         def random_location_except_origin() -> Coords:
-            x = random.randint(1, self.grid_width - 1)
-            y = random.randint(1, self.grid_height - 1)
+            x = random.randint(1, max(1, self.grid_width - 1))
+            y = random.randint(1, max(1, self.grid_height - 1))
             return Coords(x, y)
 
         def generate_pit_locations(w, h): return [Coords(x, y) for x in range(0, w)
