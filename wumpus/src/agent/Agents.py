@@ -1,6 +1,8 @@
 import copy
 import random
 from typing import List
+
+from matplotlib import pyplot as plt
 from wumpus.src.agent.Misc import WumpusDiGraph
 from wumpus.src.environment.Misc import Action, Coords, Orientation, OrientationState, Percept, WumpusEdge, WumpusNode
 import networkx as nx
@@ -358,8 +360,6 @@ class BeelineAgent(NaiveAgent):
 
 
 class ProbAgent(BeelineAgent):
-    # """An agent that uses conditional probability when searching for the gold based on the received percept at each action of the game. Its based on the BeelineAgent as it will keep track of the visited nodes and plan optimal route back
-    # """
     """An agent that uses conditional probability when searching for the gold 
     based on the received percept at each action of the game. Its based on the 
     BeelineAgent as it will keep track of the visited nodes and plan optimal route 
@@ -367,6 +367,8 @@ class ProbAgent(BeelineAgent):
     """
     pits_breeze_graph: BayesianNetwork = None
     wumpus_stench_graph: BayesianNetwork = None
+    grid_width: int = None
+    grid_height: int = None
 
     def __init__(self, grid_width: int = 4,
                  grid_height: int = 4,
@@ -374,50 +376,196 @@ class ProbAgent(BeelineAgent):
                  wumpus_stench_prb: float = 0.1):
         self.pits_breeze_graph = BayesianNetwork('Pits Breeze')
         self.wumpus_stench_graph = BayesianNetwork('Wumpus Stench')
+        self.grid_height = grid_height
+        self.grid_width = grid_width
 
-    # def prepare_prob_graphs(self, grid_width: int, grid_height: int) -> None:
-    #     grid_locations = [Coords(x,y) for x in range(1,grid_width)
-    #                           for y in range(1, grid_height)]
-    #     pit_dist = DiscreteDistribution()
-    #     pit_dist
+    def prepare_prob_graph(self,
+                           grid_width: int,
+                           grid_height: int,
+                           independent_prob: float,
+                           indepndent_prob_node_label: str,
+                           dependent_prob_node_label: str) -> BayesianNetwork:
+        ##########################################
+        ##########################################
+        one_location_dist = [
+            ['F', 'F', 1.],
+            ['F', 'T', 0.],
+            ['T', 'F', 0.],
+            ['T', 'T', 1.]
+        ]
 
-    #     guest = DiscreteDistribution({'A': 1./3, 'B': 1./3, 'C': 1./3})
-    #     prize = DiscreteDistribution({'A': 1./3, 'B': 1./3, 'C': 1./3})
-    #     monty = ConditionalProbabilityTable(
-    #     [['A', 'A', 'A', 0.0],
-    #         ['A', 'A', 'B', 0.5],
-    #         ['A', 'A', 'C', 0.5],
-    #         ['A', 'B', 'A', 0.0],
-    #         ['A', 'B', 'B', 0.0],
-    #         ['A', 'B', 'C', 1.0],
-    #         ['A', 'C', 'A', 0.0],
-    #         ['A', 'C', 'B', 1.0],
-    #         ['A', 'C', 'C', 0.0],
-    #         ['B', 'A', 'A', 0.0],
-    #         ['B', 'A', 'B', 0.0],
-    #         ['B', 'A', 'C', 1.0],
-    #         ['B', 'B', 'A', 0.5],
-    #         ['B', 'B', 'B', 0.0],
-    #         ['B', 'B', 'C', 0.5],
-    #         ['B', 'C', 'A', 1.0],
-    #         ['B', 'C', 'B', 0.0],
-    #         ['B', 'C', 'C', 0.0],
-    #         ['C', 'A', 'A', 0.0],
-    #         ['C', 'A', 'B', 1.0],
-    #         ['C', 'A', 'C', 0.0],
-    #         ['C', 'B', 'A', 1.0],
-    #         ['C', 'B', 'B', 0.0],
-    #         ['C', 'B', 'C', 0.0],
-    #         ['C', 'C', 'A', 0.5],
-    #         ['C', 'C', 'B', 0.5],
-    #         ['C', 'C', 'C', 0.0]], [guest, prize])
+        corner_location_dist = [
+            ['F', 'F', 'F', 1.],
+            ['F', 'F', 'T', 0.],
+            ['F', 'T', 'F', 0.],
+            ['F', 'T', 'T', 1.],
+            ['T', 'F', 'T', 1.],
+            ['T', 'F', 'F', 0.],
+            ['T', 'T', 'F', 0.],
+            ['T', 'T', 'T', 1.],
+        ]
 
-    #     s1 = Node(guest, name="guest")
-    #     s2 = Node(prize, name="prize")
-    #     s3 = Node(monty, name="monty")
+        edge_location_dist = [
+            ['F', 'F', 'F', 'F', 1.],
+            ['F', 'F', 'F', 'T', 0.],
+            ['F', 'F', 'T', 'F', 0.],
+            ['F', 'F', 'T', 'T', 1.],
+            ['F', 'T', 'F', 'F', 0.],
+            ['F', 'T', 'F', 'T', 1.],
+            ['F', 'T', 'T', 'F', 0.],
+            ['F', 'T', 'T', 'T', 1.],
+            ['T', 'F', 'F', 'F', 0.],
+            ['T', 'F', 'F', 'T', 1.],
+            ['T', 'F', 'T', 'F', 0.],
+            ['T', 'F', 'T', 'T', 1.],
+            ['T', 'T', 'F', 'F', 0.],
+            ['T', 'T', 'F', 'T', 1.],
+            ['T', 'T', 'T', 'F', 0.],
+            ['T', 'T', 'T', 'T', 1.],
+        ]
 
-    #     model = BayesianNetwork("Monty Hall Problem")
-    #     model.add_states(s1, s2, s3)
-    #     model.add_edge(s1, s3)
-    #     model.add_edge(s2, s3)
-    #     model.bake()
+        middle_location_dist = [
+            ['T', 'T', 'T', 'T', 'T', 1.],
+            ['T', 'T', 'T', 'T', 'F', 0.],
+            ['T', 'T', 'T', 'F', 'T', 1.],
+            ['T', 'T', 'T', 'F', 'F', 0.],
+            ['T', 'T', 'F', 'T', 'T', 1.],
+            ['T', 'T', 'F', 'T', 'F', 0.],
+            ['T', 'T', 'F', 'F', 'T', 1.],
+            ['T', 'T', 'F', 'F', 'F', 0.],
+            ['T', 'F', 'T', 'T', 'T', 1.],
+            ['T', 'F', 'T', 'T', 'F', 0.],
+            ['T', 'F', 'T', 'F', 'T', 1.],
+            ['T', 'F', 'T', 'F', 'F', 0.],
+            ['T', 'F', 'F', 'T', 'T', 1.],
+            ['T', 'F', 'F', 'T', 'F', 0.],
+            ['T', 'F', 'F', 'F', 'T', 1.],
+            ['T', 'F', 'F', 'F', 'F', 0.],
+            ['F', 'T', 'T', 'T', 'T', 1.],
+            ['F', 'T', 'T', 'T', 'F', 0.],
+            ['F', 'T', 'T', 'F', 'T', 1.],
+            ['F', 'T', 'T', 'F', 'F', 0.],
+            ['F', 'T', 'F', 'T', 'T', 1.],
+            ['F', 'T', 'F', 'T', 'F', 0.],
+            ['F', 'T', 'F', 'F', 'T', 1.],
+            ['F', 'T', 'F', 'F', 'F', 0.],
+            ['F', 'F', 'T', 'T', 'T', 1.],
+            ['F', 'F', 'T', 'T', 'F', 0.],
+            ['F', 'F', 'T', 'F', 'T', 1.],
+            ['F', 'F', 'T', 'F', 'F', 0.],
+            ['F', 'F', 'F', 'T', 'T', 1.],
+            ['F', 'F', 'F', 'T', 'F', 0.],
+            ['F', 'F', 'F', 'F', 'T', 0.],
+            ['F', 'F', 'F', 'F', 'F', 1]
+        ]
+        ##########################################
+        ##########################################
+
+        uniform_prob = independent_prob
+        all_indp_loc = [Coords(x, y)
+                        for x in range(0, grid_width)
+                        for y in range(0, grid_height) if (x != 0 or y != 0)]
+        indp_uniform_prob = {'T': uniform_prob, 'F': 1-uniform_prob}
+
+        model: BayesianNetwork = BayesianNetwork("Pit/Breeze")
+        indp_nodes = {}
+        for indp_loc in all_indp_loc:
+            indp_loc_dist = DiscreteDistribution(indp_uniform_prob)
+            indp_node = Node(indp_loc_dist,
+                             name=indepndent_prob_node_label+'@'+str(indp_loc))
+            indp_nodes.update({indp_loc: indp_node})
+            model.add_node(indp_node)
+
+        # go through all locations, grabbing the physically adjacent locations
+        # and use that as key look up to extract the distribution pit nodes
+        # so that we can link them to the current location using the appropriate
+        # conditional probability table
+        all_dep_loc = [Coords(0, 0)] + all_indp_loc
+        dep_loc = None
+        for dep_loc in all_dep_loc:
+            adjacent_indp_locs = self.adjacent_cells(dep_loc)
+            # remove 0,0 since can't have pit/stench there
+            try:
+                adjacent_indp_locs.remove(Coords(0, 0))
+            except:
+                pass
+            adj_indp_loc_nodes = []
+            for adj_indp_loc in adjacent_indp_locs:
+                adj_indp_loc_nodes.append(indp_nodes[adj_indp_loc])
+
+            if len(adj_indp_loc_nodes) == 0:
+                continue
+
+            # get the right conditional probability table based on
+            # where the dependent prob node is located at (x,y)
+            cond_loc_dist = []
+            if len(adjacent_indp_locs) == 1:
+                cond_loc_dist = one_location_dist
+            elif ((dep_loc.x == 0 and dep_loc.y == 1) or (dep_loc.x == 1 and dep_loc.y == 0)) or\
+                (dep_loc.x == grid_width - 1 and (dep_loc.y == 0 or dep_loc.y == grid_height - 1)) \
+                    or (dep_loc.x == 0 and (dep_loc.y == grid_height - 1 or dep_loc.y == 0)):
+                cond_loc_dist = corner_location_dist
+            elif (dep_loc.x == 0 and 0 < dep_loc.y < grid_height - 1) or (dep_loc.x == grid_width - 1 and 0 < dep_loc.y < grid_height - 1) \
+                    or (dep_loc.y == 0 and 0 < dep_loc.x < grid_width - 1) or (dep_loc.y == grid_height - 1 and 0 < dep_loc.x < grid_width - 1):
+                cond_loc_dist = edge_location_dist
+            else:
+                cond_loc_dist = middle_location_dist
+
+            cond_prob_node = ConditionalProbabilityTable(
+                cond_loc_dist,
+                list(map(lambda n: n.distribution, adj_indp_loc_nodes))
+            )
+
+            dep_node = Node(
+                cond_prob_node, name=dependent_prob_node_label+"@"+str(dep_loc))
+            model.add_node(dep_node)
+            # now add the edges between each of the adjacent pit probabilities
+            # and the current location breeze conditional probability table node
+            for a_indp_node in adj_indp_loc_nodes:
+                model.add_edge(a_indp_node, dep_node)
+
+        model.bake()
+        return model
+
+    def get_node_probabilities_for_evidence(self,
+                                            model: BayesianNetwork,
+                                            evidence: dict) -> dict[str, DiscreteDistribution]:
+        """Method gets the node probability distribution given supplied `evidence`, for
+        the provided `model`
+
+        Args:
+            model (BayesianNetwork): The model/network that we want to calculate the node
+            probabilities for 
+            evidence (dict): the evidence/facts that we know and for which we want to calculate 
+            probability distributions of remaining nodes
+
+        Returns:
+            dict[str, DiscreteDistribution]: A `dict` mapping between node/state names and the 
+            `DiscreteDistribution` based on the `evidence` and `model`
+        """
+        beliefs = model.predict_proba(evidence)
+        probs = {}
+        for state, belief in zip(model.states, beliefs):
+            probs.update({state.name: belief})
+        return probs
+
+    def adjacent_cells(self, coords: Coords) -> List[Coords]:
+        """Helper method that lets the agent figure out what locations, 
+        are adjacent to the currently passed `coords` locations.
+
+        Args:
+            coords (Coords): The location for which we want to identify adjacent cells/
+            locations.
+
+        Returns:
+            List[Coords]: A list of all the locations that are adjacent
+        """
+        def neighbors(x, y): return [Coords(x2, y2) for x2 in range(x-1, x+2)
+                                     for y2 in range(y-1, y+2)
+                                     if (-1 < x < self.grid_width and
+                                         -1 < y < self.grid_height and
+                                         (x != x2 or y != y2) and
+                                         (x == x2 or y == y2) and
+                                         (0 <= x2 < self.grid_width) and
+                                         (0 <= y2 < self.grid_height))]
+        return neighbors(coords.x, coords.y)

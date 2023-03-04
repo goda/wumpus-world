@@ -132,19 +132,16 @@ class Orientation:
 
 
 class WumpusNode:
-    #id: int
     location: Coords
     orientation_state: OrientationState
 
-    def __init__(self,  # id: int,
+    def __init__(self,
                  location: Coords,
                  orientation_state: OrientationState) -> None:
-        # self.id = id
         self.location = location
         self.orientation_state = orientation_state
 
     def __str__(self) -> str:
-        # return "{""id:"" " + str(self.id) + ", ""L:"" " + str(self.location) + ", ""O"": " + self.orientation_state.name  + "}"
         return "{""L:"" " + str(self.location) + ", ""O"": " + self.orientation_state.name + "}"
 
     def __eq__(self, __o: object) -> bool:

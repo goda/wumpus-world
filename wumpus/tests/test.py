@@ -10,7 +10,8 @@ from wumpus.src.environment.Environments import Environment
 from wumpus.src.environment.Misc import Orientation
 import matplotlib.pyplot as plt
 import networkx as nx
-from pomegranate import Node, DiscreteDistribution, BayesianNetwork, ConditionalProbabilityTable
+from pomegranate import Node, BayesianNetwork, ConditionalProbabilityTable
+from pomegranate.distributions import DiscreteDistribution
 
 
 class TestEnvironment(unittest.TestCase):
@@ -701,169 +702,55 @@ class TestProbAgent(unittest.TestCase):
         assert(probAgent.pits_breeze_graph is not None)
         assert(probAgent.wumpus_stench_graph is not None)
 
-    def test_create_distribution_grid(self):
-        grid_height = 5
-        grid_width = 4
-        uniform_prob = 0.2
-        e = Environment(grid_width, grid_height, uniform_prob)
-        all_pit_loc = [Coords(x, y)
-                       for x in range(0, grid_width)
-                       for y in range(0, grid_height) if (x != 0 or y != 0)]
-        assert(len(all_pit_loc) == grid_height*grid_width - 1)
-        pit_uniform_prob = {'T': uniform_prob, 'F': 1-uniform_prob}
+    def test_prepare_prob_graphs(self):
+        probAgent: ProbAgent = ProbAgent()
+        probAgent.pits_breeze_graph = probAgent.prepare_prob_graph(
+            grid_width=4,
+            grid_height=4,
+            independent_prob=0.2,
+            indepndent_prob_node_label='pit',
+            dependent_prob_node_label='breeze'
+        )
 
-        uniform_pit_probs = [{l: {'T': uniform_prob, 'F': 1-uniform_prob}}
-                             for l in all_pit_loc]
-        # all_loc_pit_probs = {}
-        # for l in uniform_pit_probs:
-        #     all_loc_pit_probs.update(l)
+        probAgent.wumpus_stench_graph = probAgent.prepare_prob_graph(
+            grid_width=4,
+            grid_height=4,
+            independent_prob=1./4/4,
+            indepndent_prob_node_label='wumpus',
+            dependent_prob_node_label='stench'
+        )
 
-        model: BayesianNetwork = BayesianNetwork("Pit/Breeze")
-        pit_nodes = {}
-        for pit_loc in all_pit_loc:
-            pit_loc_dist = DiscreteDistribution(pit_uniform_prob)
-            pit_node = Node(pit_loc_dist, name='pit@'+str(pit_loc))
-            pit_nodes.update({pit_loc: pit_node})
-            model.add_node(pit_node)
+    def test_update_graph_based(self):
+        grid_width = 3
+        grid_height = 3
+        model: BayesianNetwork = None
+        probAgent: ProbAgent = ProbAgent(
+            grid_width=grid_width,
+            grid_height=grid_height
+        )
+        probAgent.pits_breeze_graph = probAgent.prepare_prob_graph(
+            grid_height=grid_height,
+            grid_width=grid_width,
+            independent_prob=0.2,
+            indepndent_prob_node_label='pit',
+            dependent_prob_node_label='breeze'
+        )
 
-        one_location_dist = [
-            ['F', 'F', 1.],
-            ['F', 'T', 0.],
-            ['T', 'F', 0.],
-            ['T', 'T', 1.]
-        ]
+        probAgent.wumpus_stench_graph = probAgent.prepare_prob_graph(
+            grid_width=grid_width,
+            grid_height=grid_height,
+            independent_prob=1./grid_height/grid_height,
+            indepndent_prob_node_label='wumpus',
+            dependent_prob_node_label='stench'
+        )
+        # plt.figure(figsize=(14, 10))
+        # probAgent.wumpus_stench_graph.plot()
+        # plt.show()
 
-        corner_location_dist = [
-            ['F', 'F', 'F', 1.],
-            ['F', 'F', 'T', 0.],
-            ['F', 'T', 'F', 0.],
-            ['F', 'T', 'T', 1.],
-            ['T', 'F', 'T', 1.],
-            ['T', 'F', 'F', 0.],
-            ['T', 'T', 'F', 0.],
-            ['T', 'T', 'T', 1.],
-        ]
-
-        edge_location_dist = [
-            ['F', 'F', 'F', 'F', 1.],
-            ['F', 'F', 'F', 'T', 0.],
-            ['F', 'F', 'T', 'F', 0.],
-            ['F', 'F', 'T', 'T', 1.],
-            ['F', 'T', 'F', 'F', 0.],
-            ['F', 'T', 'F', 'T', 1.],
-            ['F', 'T', 'T', 'F', 0.],
-            ['F', 'T', 'T', 'T', 1.],
-            ['T', 'F', 'F', 'F', 0.],
-            ['T', 'F', 'F', 'T', 1.],
-            ['T', 'F', 'T', 'F', 0.],
-            ['T', 'F', 'T', 'T', 1.],
-            ['T', 'T', 'F', 'F', 0.],
-            ['T', 'T', 'F', 'T', 1.],
-            ['T', 'T', 'T', 'F', 0.],
-            ['T', 'T', 'T', 'T', 1.],
-        ]
-
-        middle_location_dist = [
-            ['T', 'T', 'T', 'T', 'T', 1.],
-            ['T', 'T', 'T', 'T', 'F', 0.],
-            ['T', 'T', 'T', 'F', 'T', 1.],
-            ['T', 'T', 'T', 'F', 'F', 0.],
-            ['T', 'T', 'F', 'T', 'T', 1.],
-            ['T', 'T', 'F', 'T', 'F', 0.],
-            ['T', 'T', 'F', 'F', 'T', 1.],
-            ['T', 'T', 'F', 'F', 'F', 0.],
-            ['T', 'F', 'T', 'T', 'T', 1.],
-            ['T', 'F', 'T', 'T', 'F', 0.],
-            ['T', 'F', 'T', 'F', 'T', 1.],
-            ['T', 'F', 'T', 'F', 'F', 0.],
-            ['T', 'F', 'F', 'T', 'T', 1.],
-            ['T', 'F', 'F', 'T', 'F', 0.],
-            ['T', 'F', 'F', 'F', 'T', 1.],
-            ['T', 'F', 'F', 'F', 'F', 0.],
-            ['F', 'T', 'T', 'T', 'T', 1.],
-            ['F', 'T', 'T', 'T', 'F', 0.],
-            ['F', 'T', 'T', 'F', 'T', 1.],
-            ['F', 'T', 'T', 'F', 'F', 0.],
-            ['F', 'T', 'F', 'T', 'T', 1.],
-            ['F', 'T', 'F', 'T', 'F', 0.],
-            ['F', 'T', 'F', 'F', 'T', 1.],
-            ['F', 'T', 'F', 'F', 'F', 0.],
-            ['F', 'F', 'T', 'T', 'T', 1.],
-            ['F', 'F', 'T', 'T', 'F', 0.],
-            ['F', 'F', 'T', 'F', 'T', 1.],
-            ['F', 'F', 'T', 'F', 'F', 0.],
-            ['F', 'F', 'F', 'T', 'T', 1.],
-            ['F', 'F', 'F', 'T', 'F', 0.],
-            ['F', 'F', 'F', 'F', 'T', 0.],
-            ['F', 'F', 'F', 'F', 'F', 1]
-        ]
-
-        print('\nThere are ', len(pit_nodes), ' pit nodes')
-
-        # go through all locations, grabbing the physically adjacent locations
-        # and use that as key look up to extract the distribution pit nodes
-        # so that we can link them to the current location using the appropriate
-        # conditional probability table
-        all_breeze_loc = [Coords(0, 0)] + all_pit_loc
-        breeze_loc = None
-        for breeze_loc in all_breeze_loc:
-            print('Current breeze loc', breeze_loc)
-            adjacent_pit_locs = e.adjacent_cells(breeze_loc)
-            # remove 0,0 since can't have pit there
-            try:
-                adjacent_pit_locs.remove(Coords(0, 0))
-            except:
-                pass
-            adj_pit_loc_nodes = []
-            for adj_pit_loc in adjacent_pit_locs:
-                adj_pit_loc_nodes.append(pit_nodes[adj_pit_loc])
-
-            if len(adj_pit_loc_nodes) == 0:
-                print('no adj nodes to connect to')
-                continue
-
-            # get the right conditional probability table based on
-            # where the breeze node is located at (x,y)
-            cond_loc_dist = []
-            if len(adjacent_pit_locs) == 1:
-                print('- one node only', breeze_loc, 'adj loc nodes',
-                      len(adj_pit_loc_nodes))
-                cond_loc_dist = one_location_dist
-            elif ((breeze_loc.x == 0 and breeze_loc.y == 1) or (breeze_loc.x == 1 and breeze_loc.y == 0)) or\
-                (breeze_loc.x == grid_width - 1 and (breeze_loc.y == 0 or breeze_loc.y == grid_height - 1)) \
-                    or (breeze_loc.x == 0 and (breeze_loc.y == grid_height - 1 or breeze_loc.y == 0)):
-                print('- corner', breeze_loc, 'adj loc nodes',
-                      len(adj_pit_loc_nodes))
-                cond_loc_dist = corner_location_dist
-            elif (breeze_loc.x == 0 and 0 < breeze_loc.y < grid_height - 1) or (breeze_loc.x == grid_width - 1 and 0 < breeze_loc.y < grid_height - 1) \
-                    or (breeze_loc.y == 0 and 0 < breeze_loc.x < grid_width - 1) or (breeze_loc.y == grid_height - 1 and 0 < breeze_loc.x < grid_width - 1):
-                print('- edge', breeze_loc, 'adj loc nodes',
-                      len(adj_pit_loc_nodes))
-                cond_loc_dist = edge_location_dist
-            else:
-                print('- inside', breeze_loc, 'adj loc nodes',
-                      len(adj_pit_loc_nodes))
-                cond_loc_dist = middle_location_dist
-
-            cond_prob_node = ConditionalProbabilityTable(
-                cond_loc_dist,
-                list(map(lambda n: n.distribution, adj_pit_loc_nodes))
-            )
-
-            breeze_node = Node(cond_prob_node, name="breeze@"+str(breeze_loc))
-            model.add_node(breeze_node)
-            # now add the edges between each of the adjacent pit probabilities
-            # and the current location breeze conditional probability table node
-            for a_pit_node in adj_pit_loc_nodes:
-                print('- adding edge from ', a_pit_node.name,
-                      'to', breeze_node.name)
-                model.add_edge(a_pit_node, breeze_node)
-
-        model.bake()
-
-        plt.figure(figsize=(14, 10))
-        model.plot()
-        plt.show()
+        model = probAgent.wumpus_stench_graph
+        b = probAgent.get_node_probabilities_for_evidence(model,
+                                                          {'stench@(x: 0, y: 0)': 'F'})
+        assert(b['wumpus@(x: 1, y: 0)'].parameters[0]['T'] == 0)
 
 
 if __name__ == '__main__':
