@@ -129,38 +129,3 @@ class Orientation:
     def turn_right(self):
         new_orientation_index = (self.state.value + 1) % 4
         self.state = OrientationState(new_orientation_index)
-
-
-class WumpusNode:
-    location: Coords
-    orientation_state: OrientationState
-
-    def __init__(self,
-                 location: Coords,
-                 orientation_state: OrientationState) -> None:
-        self.location = location
-        self.orientation_state = orientation_state
-
-    def __str__(self) -> str:
-        return "{""L:"" " + str(self.location) + ", ""O"": " + self.orientation_state.name + "}"
-
-    def __eq__(self, __o: object) -> bool:
-        return self.location == __o.location and self.orientation_state == __o.orientation_state
-
-    def __hash__(self):
-        return hash(self.__str__())
-
-    def __repr__(self):
-        return str(self.__dict__.values())
-
-
-class WumpusEdge:
-    orientation_state: OrientationState
-    action: Action
-
-    def __init__(self, action: Action) -> None:
-        self.action = action
-
-    def __str__(self) -> str:
-        # return self.orientation_state.name
-        return self.action.name

@@ -3,10 +3,10 @@ import random
 from typing import List
 
 from matplotlib import pyplot as plt
-from wumpus.src.agent.Misc import WumpusDiGraph
-from wumpus.src.environment.Misc import Action, Coords, Orientation, OrientationState, Percept, WumpusEdge, WumpusNode
+from wumpus.src.agent.Misc import WumpusDiGraph, WumpusEdge, WumpusNode, WumpusBayesianNetwork
+from wumpus.src.environment.Misc import Action, Coords, Orientation, OrientationState, Percept
 import networkx as nx
-from pomegranate import Node, DiscreteDistribution, BayesianNetwork, ConditionalProbabilityTable
+from pomegranate import Node, DiscreteDistribution, ConditionalProbabilityTable
 
 
 class Agent:
@@ -365,8 +365,8 @@ class ProbAgent(BeelineAgent):
     BeelineAgent as it will keep track of the visited nodes and plan optimal route 
     back
     """
-    pits_breeze_graph: BayesianNetwork = None
-    wumpus_stench_graph: BayesianNetwork = None
+    pits_breeze_graph: WumpusBayesianNetwork = None
+    wumpus_stench_graph: WumpusBayesianNetwork = None
     grid_width: int = None
     grid_height: int = None
 
@@ -374,8 +374,8 @@ class ProbAgent(BeelineAgent):
                  grid_height: int = 4,
                  pit_location_prob: float = 0.2,
                  wumpus_stench_prb: float = 0.1):
-        self.pits_breeze_graph = BayesianNetwork('Pits Breeze')
-        self.wumpus_stench_graph = BayesianNetwork('Wumpus Stench')
+        self.pits_breeze_graph = WumpusBayesianNetwork('Pits Breeze')
+        self.wumpus_stench_graph = WumpusBayesianNetwork('Wumpus Stench')
         self.grid_height = grid_height
         self.grid_width = grid_width
 
@@ -384,7 +384,7 @@ class ProbAgent(BeelineAgent):
                            grid_height: int,
                            independent_prob: float,
                            indepndent_prob_node_label: str,
-                           dependent_prob_node_label: str) -> BayesianNetwork:
+                           dependent_prob_node_label: str) -> WumpusBayesianNetwork:
         ##########################################
         ##########################################
         one_location_dist = [
@@ -467,7 +467,7 @@ class ProbAgent(BeelineAgent):
                         for y in range(0, grid_height) if (x != 0 or y != 0)]
         indp_uniform_prob = {'T': uniform_prob, 'F': 1-uniform_prob}
 
-        model: BayesianNetwork = BayesianNetwork("Pit/Breeze")
+        model: WumpusBayesianNetwork = WumpusBayesianNetwork("Pit/Breeze")
         indp_nodes = {}
         for indp_loc in all_indp_loc:
             indp_loc_dist = DiscreteDistribution(indp_uniform_prob)
@@ -527,27 +527,208 @@ class ProbAgent(BeelineAgent):
         model.bake()
         return model
 
-    def get_node_probabilities_for_evidence(self,
-                                            model: BayesianNetwork,
-                                            evidence: dict) -> dict[str, DiscreteDistribution]:
-        """Method gets the node probability distribution given supplied `evidence`, for
-        the provided `model`
+    def prepare_prob_graph_wumpus(self,
+                                  grid_width: int,
+                                  grid_height: int,
+                                  independent_prob: float,
+                                  indepndent_prob_node_label: str,
+                                  dependent_prob_node_label: str) -> WumpusBayesianNetwork:
+        ##########################################
+        ##########################################
+        wumpus_dist = [
+            ['F', 'F', (1 - 1./grid_width/grid_height)**2],
+            ['F', 'T', (1 - 1./grid_width/grid_height)
+             * (1./grid_width/grid_height)],
+            ['T', 'F', (1 - 1./grid_width/grid_height)
+             * (1./grid_width/grid_height)],
+            ['T', 'T', 0.]
+        ]
 
-        Args:
-            model (BayesianNetwork): The model/network that we want to calculate the node
-            probabilities for 
-            evidence (dict): the evidence/facts that we know and for which we want to calculate 
-            probability distributions of remaining nodes
+        def wumpus_stench_same_loc_dist_one_location(x): return [
+            # since no wumpus at this loc, the prob no stench, is
+            # the revised generic wumpus prob 1/(num wumpus loc - 1) to the
+            # power of locations (x) that could give off stench
+            ['F', 'F', (1 - 1./(grid_height*grid_height-2))**x],
+            ['F', 'T', (1./(grid_height*grid_height-2))*x],
+            ['T', 'F', 0.],
+            ['T', 'T', 1.]
+        ]
 
-        Returns:
-            dict[str, DiscreteDistribution]: A `dict` mapping between node/state names and the 
-            `DiscreteDistribution` based on the `evidence` and `model`
-        """
-        beliefs = model.predict_proba(evidence)
-        probs = {}
-        for state, belief in zip(model.states, beliefs):
-            probs.update({state.name: belief})
-        return probs
+        one_location_dist = [
+            ['F', 'F', 1.],
+            ['F', 'T', 0.],
+            ['T', 'F', 0.],
+            ['T', 'T', 1.]
+        ]
+
+        corner_location_dist = [
+            ['F', 'F', 'F', 1.],
+            ['F', 'F', 'T', 0.],
+            ['F', 'T', 'F', 0.],
+            ['F', 'T', 'T', 1.],
+            ['T', 'F', 'T', 1.],
+            ['T', 'F', 'F', 0.],
+            ['T', 'T', 'F', 0.],
+            ['T', 'T', 'T', 1.],
+        ]
+
+        edge_location_dist = [
+            ['F', 'F', 'F', 'F', 1.],
+            ['F', 'F', 'F', 'T', 0.],
+            ['F', 'F', 'T', 'F', 0.],
+            ['F', 'F', 'T', 'T', 1.],
+            ['F', 'T', 'F', 'F', 0.],
+            ['F', 'T', 'F', 'T', 1.],
+            ['F', 'T', 'T', 'F', 0.],
+            ['F', 'T', 'T', 'T', 1.],
+            ['T', 'F', 'F', 'F', 0.],
+            ['T', 'F', 'F', 'T', 1.],
+            ['T', 'F', 'T', 'F', 0.],
+            ['T', 'F', 'T', 'T', 1.],
+            ['T', 'T', 'F', 'F', 0.],
+            ['T', 'T', 'F', 'T', 1.],
+            ['T', 'T', 'T', 'F', 0.],
+            ['T', 'T', 'T', 'T', 1.],
+        ]
+
+        middle_location_dist = [
+            ['T', 'T', 'T', 'T', 'T', 1.],
+            ['T', 'T', 'T', 'T', 'F', 0.],
+            ['T', 'T', 'T', 'F', 'T', 1.],
+            ['T', 'T', 'T', 'F', 'F', 0.],
+            ['T', 'T', 'F', 'T', 'T', 1.],
+            ['T', 'T', 'F', 'T', 'F', 0.],
+            ['T', 'T', 'F', 'F', 'T', 1.],
+            ['T', 'T', 'F', 'F', 'F', 0.],
+            ['T', 'F', 'T', 'T', 'T', 1.],
+            ['T', 'F', 'T', 'T', 'F', 0.],
+            ['T', 'F', 'T', 'F', 'T', 1.],
+            ['T', 'F', 'T', 'F', 'F', 0.],
+            ['T', 'F', 'F', 'T', 'T', 1.],
+            ['T', 'F', 'F', 'T', 'F', 0.],
+            ['T', 'F', 'F', 'F', 'T', 1.],
+            ['T', 'F', 'F', 'F', 'F', 0.],
+            ['F', 'T', 'T', 'T', 'T', 1.],
+            ['F', 'T', 'T', 'T', 'F', 0.],
+            ['F', 'T', 'T', 'F', 'T', 1.],
+            ['F', 'T', 'T', 'F', 'F', 0.],
+            ['F', 'T', 'F', 'T', 'T', 1.],
+            ['F', 'T', 'F', 'T', 'F', 0.],
+            ['F', 'T', 'F', 'F', 'T', 1.],
+            ['F', 'T', 'F', 'F', 'F', 0.],
+            ['F', 'F', 'T', 'T', 'T', 1.],
+            ['F', 'F', 'T', 'T', 'F', 0.],
+            ['F', 'F', 'T', 'F', 'T', 1.],
+            ['F', 'F', 'T', 'F', 'F', 0.],
+            ['F', 'F', 'F', 'T', 'T', 1.],
+            ['F', 'F', 'F', 'T', 'F', 0.],
+            ['F', 'F', 'F', 'F', 'T', 0.],
+            ['F', 'F', 'F', 'F', 'F', 1]
+        ]
+        ##########################################
+        ##########################################
+
+        uniform_prob = independent_prob
+        all_indp_loc = [Coords(x, y)
+                        for x in range(0, grid_width)
+                        for y in range(0, grid_height) if (x != 0 or y != 0)]
+        indp_uniform_prob = {'T': uniform_prob, 'F': 1-uniform_prob}
+
+        model: WumpusBayesianNetwork = WumpusBayesianNetwork("Pit/Breeze")
+        indp_nodes = {}
+        for indp_loc in all_indp_loc:
+            indp_loc_dist = DiscreteDistribution(indp_uniform_prob)
+            indp_node = Node(indp_loc_dist,
+                             name=indepndent_prob_node_label+'@'+str(indp_loc))
+            for i_l in all_indp_loc:
+                if i_l == indp_loc:
+                    continue
+
+            indp_nodes.update({indp_loc: indp_node})
+            model.add_node(indp_node)
+
+        # for wumpus need to add the probability of 1 wumpus
+        for indp_loc in all_indp_loc:
+            name = indepndent_prob_node_label+'@'+str(indp_loc)
+            indp_loc_node = model.get_node(name)
+            for i_l in all_indp_loc:
+                if i_l == indp_loc:
+                    continue
+                to_indp_loc_node = model.get_node(indepndent_prob_node_label+'@'
+                                                  + str(i_l))
+                cond_prob_node_s = ConditionalProbabilityTable(
+                    wumpus_dist,
+                    [to_indp_loc_node.distribution]
+                )
+                model.add_edge(to_indp_loc_node, indp_loc_node)
+
+        # go through all locations, grabbing the physically adjacent locations
+        # and use that as key look up to extract the distribution pit nodes
+        # so that we can link them to the current location using the appropriate
+        # conditional probability table
+        all_dep_loc = [Coords(0, 0)] + all_indp_loc
+        dep_loc = None
+        for dep_loc in all_dep_loc:
+            adjacent_indp_locs = self.adjacent_cells(dep_loc)
+            # remove 0,0 since can't have pit/stench there
+            try:
+                adjacent_indp_locs.remove(Coords(0, 0))
+            except:
+                pass
+            adj_indp_loc_nodes = []
+            for adj_indp_loc in adjacent_indp_locs:
+                adj_indp_loc_nodes.append(indp_nodes[adj_indp_loc])
+
+            if len(adj_indp_loc_nodes) == 0:
+                continue
+
+            # get the right conditional probability table based on
+            # where the dependent prob node is located at (x,y)
+            cond_loc_dist = []
+            if len(adjacent_indp_locs) == 1:
+                cond_loc_dist = one_location_dist
+            elif ((dep_loc.x == 0 and dep_loc.y == 1) or (dep_loc.x == 1 and dep_loc.y == 0)) or\
+                (dep_loc.x == grid_width - 1 and (dep_loc.y == 0 or dep_loc.y == grid_height - 1)) \
+                    or (dep_loc.x == 0 and (dep_loc.y == grid_height - 1 or dep_loc.y == 0)):
+                cond_loc_dist = corner_location_dist
+            elif (dep_loc.x == 0 and 0 < dep_loc.y < grid_height - 1) or (dep_loc.x == grid_width - 1 and 0 < dep_loc.y < grid_height - 1) \
+                    or (dep_loc.y == 0 and 0 < dep_loc.x < grid_width - 1) or (dep_loc.y == grid_height - 1 and 0 < dep_loc.x < grid_width - 1):
+                cond_loc_dist = edge_location_dist
+            else:
+                cond_loc_dist = middle_location_dist
+
+            cond_prob_node = ConditionalProbabilityTable(
+                cond_loc_dist,
+                list(map(lambda n: n.distribution, adj_indp_loc_nodes))
+            )
+
+            dep_node = Node(
+                cond_prob_node, name=dependent_prob_node_label+"@"+str(dep_loc))
+            model.add_node(dep_node)
+            # now add the edges between each of the adjacent pit probabilities
+            # and the current location breeze conditional probability table node
+            for a_indp_node in adj_indp_loc_nodes:
+                model.add_edge(a_indp_node, dep_node)
+
+            # same location wumpus/stench prob update
+            if dep_loc == Coords(0, 0):
+                continue
+
+            print('Need to add self loc', dep_loc)
+            num_adj_loc = len(adjacent_indp_locs)
+            indp_node = indp_nodes[dep_loc]
+            print(indp_node)
+
+            # same_loc_wumpus_stench_dist = wumpus_stench_same_loc_dist_one_location(
+            #     num_adj_loc)
+            # same_loc_cond_prob = ConditionalProbabilityTable(
+            #     same_loc_wumpus_stench_dist,
+            #     [indp_node]
+            # )
+            # model.add_edge(indp_node, dep_node)
+
+        model.bake()
+        return model
 
     def adjacent_cells(self, coords: Coords) -> List[Coords]:
         """Helper method that lets the agent figure out what locations, 

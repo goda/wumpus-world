@@ -2,8 +2,8 @@ import copy
 from typing import List
 import unittest
 from wumpus.src.agent.Agents import BeelineAgent, NaiveAgent, ProbAgent
-from wumpus.src.agent.Misc import WumpusDiGraph
-from wumpus.src.environment.Misc import Action, OrientationState, Percept, WumpusEdge, WumpusNode
+from wumpus.src.agent.Misc import WumpusBayesianNetwork, WumpusDiGraph, WumpusEdge, WumpusNode
+from wumpus.src.environment.Misc import Action, OrientationState, Percept
 from wumpus.src.environment.Agent import Agent
 from wumpus.src.environment.Environments import Coords
 from wumpus.src.environment.Environments import Environment
@@ -736,21 +736,139 @@ class TestProbAgent(unittest.TestCase):
             dependent_prob_node_label='breeze'
         )
 
-        probAgent.wumpus_stench_graph = probAgent.prepare_prob_graph(
+        probAgent.wumpus_stench_graph = probAgent.prepare_prob_graph_wumpus(
             grid_width=grid_width,
             grid_height=grid_height,
-            independent_prob=1./grid_height/grid_height,
+            independent_prob=1./(grid_height*grid_height-1),
             indepndent_prob_node_label='wumpus',
             dependent_prob_node_label='stench'
         )
-        # plt.figure(figsize=(14, 10))
-        # probAgent.wumpus_stench_graph.plot()
-        # plt.show()
+        probAgent.wumpus_stench_graph.plot()
+        print('Done updating')
 
-        model = probAgent.wumpus_stench_graph
-        b = probAgent.get_node_probabilities_for_evidence(model,
-                                                          {'stench@(x: 0, y: 0)': 'F'})
-        assert(b['wumpus@(x: 1, y: 0)'].parameters[0]['T'] == 0)
+        model: WumpusBayesianNetwork = probAgent.wumpus_stench_graph
+        updated_probs = model.get_node_probabilities_for_evidence(
+            {'stench@(x: 0, y: 0)': 'F'})
+        assert(updated_probs['wumpus@(x: 1, y: 0)']['T'] == 0)
+
+        updated_probs = model.get_node_probabilities_for_evidence(
+            {
+                'stench@(x: 0, y: 0)': 'F',
+                'stench@(x: 0, y: 1)': 'T',
+                'stench@(x: 1, y: 1)': 'F',
+                'stench@(x: 1, y: 2)': 'T',
+                'stench@(x: 2, y: 1)': 'F',
+                'stench@(x: 2, y: 2)': 'F',
+            })
+        # print(updated_probs)
+        model.plot()
+        # assert(updated_probs['wumpus@(x: 0, y: 2)'][''] = 0)
+
+    def test_dynamic_wumpus_stench_same_loc(self):
+        grid_width = 3
+        grid_height = 3
+
+        def wumpus_stench_same_loc_dist_one_location(x): return [
+            # since no wumpus at this loc, the prob no stench, is
+            # the revised generic wumpus prob 1/(num wumpus loc - 1) to the
+            # power of locations (x) that could give off stench
+            ['F', 'F', (1 - 1./(grid_height*grid_height-2))**x],
+            ['F', 'T', (1./(grid_height*grid_height-2))*x],
+            ['T', 'F', 0.],
+            ['T', 'T', 1.]
+        ]
+        print(wumpus_stench_same_loc_dist_one_location(2))
+
+    # def test_wumpus_network(self):
+    #     grid_width = 3
+    #     grid_height = 3
+    #     model: BayesianNetwork = None
+    #     probAgent: ProbAgent = ProbAgent(
+    #         grid_width=grid_width,
+    #         grid_height=grid_height
+    #     )
+    #     probAgent.pits_breeze_graph = probAgent.prepare_prob_graph(
+    #         grid_height=grid_height,
+    #         grid_width=grid_width,
+    #         independent_prob=0.2,
+    #         indepndent_prob_node_label='pit',
+    #         dependent_prob_node_label='breeze'
+    #     )
+
+    #     probAgent.wumpus_stench_graph = probAgent.prepare_prob_graph_wumpus(
+    #         grid_width=grid_width,
+    #         grid_height=grid_height,
+    #         independent_prob=1./(grid_height*grid_height-1),
+    #         indepndent_prob_node_label='wumpus',
+    #         dependent_prob_node_label='stench'
+    #     )
+        # probAgent.wumpus_stench_graph.plot()
+
+
+class TestWumpusBayesianNetwork(unittest.TestCase):
+    def get_monty_game_network(self) -> WumpusBayesianNetwork:
+        # Initially the door selected by the guest is completely random
+        guest = DiscreteDistribution({'A': 1./3, 'B': 1./3, 'C': 1./3})
+
+        # The door containing the prize is also a random process
+        prize = DiscreteDistribution({'A': 1./3, 'B': 1./3, 'C': 1./3})
+
+        # The door Monty picks, depends on the choice of the guest and the prize door
+        monty = ConditionalProbabilityTable(
+            [
+                ['A', 'A', 'A', 0.0],
+                ['A', 'A', 'B', 0.5],
+                ['A', 'A', 'C', 0.5],
+                ['A', 'B', 'A', 0.0],
+                ['A', 'B', 'B', 0.0],
+                ['A', 'B', 'C', 1.0],
+                ['A', 'C', 'A', 0.0],
+                ['A', 'C', 'B', 1.0],
+                ['A', 'C', 'C', 0.0],
+                ['B', 'A', 'A', 0.0],
+                ['B', 'A', 'B', 0.0],
+                ['B', 'A', 'C', 1.0],
+                ['B', 'B', 'A', 0.5],
+                ['B', 'B', 'B', 0.0],
+                ['B', 'B', 'C', 0.5],
+                ['B', 'C', 'A', 1.0],
+                ['B', 'C', 'B', 0.0],
+                ['B', 'C', 'C', 0.0],
+                ['C', 'A', 'A', 0.0],
+                ['C', 'A', 'B', 1.0],
+                ['C', 'A', 'C', 0.0],
+                ['C', 'B', 'A', 1.0],
+                ['C', 'B', 'B', 0.0],
+                ['C', 'B', 'C', 0.0],
+                ['C', 'C', 'A', 0.5],
+                ['C', 'C', 'B', 0.5],
+                ['C', 'C', 'C', 0.0]], [guest, prize])
+
+        d1 = Node(guest, name="guest")
+        d2 = Node(prize, name="prize")
+        d3 = Node(monty, name="monty")
+
+        # Building the Bayesian Network
+        network = WumpusBayesianNetwork(
+            "Solving the Monty Hall Problem With Bayesian Networks")
+        network.add_states(d1, d2, d3)
+        network.add_edge(d1, d3)
+        network.add_edge(d2, d3)
+        network.bake()
+        return network
+
+    def test_init(self):
+        w = WumpusBayesianNetwork('Test')
+        print(w)
+
+    def test_get_node(self):
+        network = self.get_monty_game_network()
+
+        guest_node = network.get_node(node_name='guest')
+        assert(guest_node is not None)
+
+        guest_node = network.get_node(node_name='not there')
+        assert(guest_node is None)
 
 
 if __name__ == '__main__':
