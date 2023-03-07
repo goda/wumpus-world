@@ -2,6 +2,7 @@ from enum import IntEnum
 from typing import List
 from typing import TypeVar
 TAction = TypeVar("TAction", bound="Action")
+TCoords = TypeVar("TCoords", bound="Coords")
 TOrientationState = TypeVar("TOrientationState", bound="OrientationState")
 
 
@@ -89,10 +90,17 @@ class Coords():
     def __hash__(self):
         return hash(self.__str__())
 
+    def is_adjacent(self, coord_b: TCoords) -> bool:
+        """Returns true if provided coord is adjacent (not diagnoally)
+        """
+        if(abs(self.x-coord_b.x) + abs(self.y-coord_b.y) == 1):
+            return True
+        return False
 
 #########################
 # Orientation Classes
 #########################
+
 
 class OrientationState(IntEnum):
     """An enum for storing the orientation 
