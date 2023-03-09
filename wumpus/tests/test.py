@@ -201,6 +201,12 @@ class TestEnvironment(unittest.TestCase):
         assert(c.is_adjacent(b) == True)
         assert(c.is_adjacent(d) == False)
 
+    def test_coords_from_string(self):
+        c = Coords(1, 0)
+
+        d = Coords.from_string(str(c))
+        assert(c == d)
+
 
 class TestOrientation(unittest.TestCase):
     """Class for testing `src.environment.misc.Orientation`
@@ -730,74 +736,27 @@ class TestProbAgent(unittest.TestCase):
     def test_update_graph_based(self):
         grid_width = 3
         grid_height = 3
-        model: BayesianNetwork = None
         probAgent: ProbAgent = ProbAgent(
             grid_width=grid_width,
             grid_height=grid_height
         )
-        probAgent.pits_breeze_graph = probAgent.prepare_prob_graph_pits_breeze(
-            grid_height=grid_height,
-            grid_width=grid_width,
-            independent_prob=0.2,
-            indepndent_prob_node_label='pit',
-            dependent_prob_node_label='breeze'
-        )
+        updated_probs = probAgent.pits_breeze_graph.get_node_probabilities_for_evidence(
+            {
+                'breeze@(x: 0, y: 0)': 'F',
+                'breeze@(x: 0, y: 1)': 'T',
+                'breeze@(x: 1, y: 1)': 'F',
+                'breeze@(x: 1, y: 2)': 'T',
+                'breeze@(x: 2, y: 1)': 'F',
+                # 'breeze@(x: 2, y: 0)': 'F',
+                # 'breeze@(x: 2, y: 2)': 'F',
+                # 'breeze@(x: 1, y: 0)': 'F',
+            })
+        assert(updated_probs['pit@(x: 0, y: 2)']['T'] == 1)
 
     def test_dynamic_wumpus_stench_setup(self):
-        grid_width = 4
-        grid_height = 4
-        model: WumpusBayesianNetwork = WumpusBayesianNetwork("Wumpus/Stench")
+        p = ProbAgent()
 
-        uniform_wumpus_prob = 1./(grid_height*grid_width-1)
-        wumpus_possible_loc = [(Coords(x, y))
-                               for x in range(0, grid_width)
-                               for y in range(0, grid_height) if (x != 0 or y != 0)]
-        stench_possible_loc = [(Coords(x, y))
-                               for x in range(0, grid_width)
-                               for y in range(0, grid_height)]
-        wumpus_dict_prob = {
-            str(wumpus_loc): uniform_wumpus_prob for wumpus_loc in wumpus_possible_loc}
-
-        wumpus_node = Node(
-            DiscreteDistribution(wumpus_dict_prob),
-            name="wumpus"
-        )
-        model.add_node(wumpus_node)
-        # go through all of the stench possible loc
-        # and for each calculate the conditional probability table
-        # for each possible wumpus location based on adjacency. Also
-        # for the same location stench/wumpus add probability of 1.
-        for s_loc in stench_possible_loc:
-            cond_table_dist = []
-            for wumpus_loc in wumpus_possible_loc:
-                prob_value = 1. if s_loc.is_adjacent(wumpus_loc) else 0.
-                prob_adjacent = [
-                    [str(wumpus_loc), 'T', prob_value],
-                    [str(wumpus_loc), 'F', 1 - prob_value]
-                ]
-                cond_table_dist.extend(prob_adjacent)
-                # for same location as wumpus, stench is always true
-                if s_loc in wumpus_possible_loc:
-                    prob_same_loc = [
-                        [str(s_loc), 'T', 1.],
-                        [str(s_loc), 'F', 0.]
-                    ]
-                    cond_table_dist.extend(prob_same_loc)
-
-            cond_prob_table = ConditionalProbabilityTable(
-                cond_table_dist,
-                [wumpus_node.distribution]
-            )
-            stench_node = Node(
-                cond_prob_table,
-                name="stench@"+str(s_loc)
-            )
-            model.add_node(stench_node)
-            model.add_edge(wumpus_node, stench_node)
-
-        model.bake()
-
-        updated_probs = model.get_node_probabilities_for_evidence(
+        updated_probs = p.wumpus_stench_graph.get_node_probabilities_for_evidence(
             {
                 'stench@(x: 0, y: 0)': 'F',
                 'stench@(x: 0, y: 1)': 'T',
@@ -805,9 +764,28 @@ class TestProbAgent(unittest.TestCase):
                 'stench@(x: 1, y: 2)': 'T',
                 'stench@(x: 2, y: 2)': 'F',
             })
-        print(updated_probs)
         assert(updated_probs['wumpus']['(x: 0, y: 2)'] == 1)
         assert(updated_probs['wumpus']['(x: 1, y: 1)'] == 0)
+
+    def test_agent_update_probs(self):
+        probAgent = ProbAgent()
+        p = Percept(breeze=False)
+        probAgent.update_evidence(
+            loc=Coords(0, 0),
+            percept=p
+        )
+        probAgent.update_probs()
+
+        assert(probAgent.pits_probs[Coords(0, 1)] == 0)
+        assert(probAgent.pits_probs[Coords(1, 0)] == 0)
+
+        probAgent.update_evidence(
+            loc=Coords(0, 1),
+            percept=Percept(breeze=True)
+        )
+        probAgent.update_probs()
+        assert(probAgent.pits_probs[Coords(0, 2)]
+               == probAgent.pits_probs[Coords(1, 1)])
 
 
 class TestWumpusBayesianNetwork(unittest.TestCase):

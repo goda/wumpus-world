@@ -90,6 +90,17 @@ class Coords():
     def __hash__(self):
         return hash(self.__str__())
 
+    @staticmethod
+    def from_string(s: str) -> TCoords:
+        """Expected format `(x: 0, y: 0)` which translates
+        to Coords(0,0)
+
+        Args:
+            s (str): formatted string representing `Coords`
+        """
+        expr = s.replace(":", "=")
+        return eval("Coords" + expr + "")
+
     def is_adjacent(self, coord_b: TCoords) -> bool:
         """Returns true if provided coord is adjacent (not diagnoally)
         """

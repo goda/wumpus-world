@@ -51,13 +51,33 @@ class BeelineAgent(NaiveAgent):
 
     def __init__(self,
                  init_coords: Coords = Coords(0, 0),
-                 init_orientation: OrientationState = OrientationState.East) -> None:
+                 init_orientation: OrientationState = OrientationState.East):
+        """Initializes the agent by initializing the graph that will allow
+        the agent to keep track of where it's been and how to get out fast
+        after it finds the gold
+
+        Args:
+            init_coords (Coords, optional): _description_. Defaults to Coords(0, 0).
+            init_orientation (OrientationState, optional): _description_. Defaults to OrientationState.East.
+        """
         super().__init__()
         self.has_gold = False
         self.init_graph(init_coords, init_orientation)
 
-    def next_action(self, percept: Percept,
-                    debug_action: Action = None) -> Action:
+    def next_action(self, percept: Percept, debug_action: Action = None) -> Action:
+        """Method determines the next action based on the `percept` experienced from
+        the environment. It first updates the agent's position in the game using the current
+        node and current (previous) action, before determening whether it needs to pick
+        next action or follow exit path if it has found the gold
+
+        Args:
+            percept (Percept): The percept passed from the environment
+            debug_action (Action, optional): Used for debuggin in test mode. Defaults to None.
+
+        Returns:
+            Action: The next action to take
+        """
+
         # need to update the graph based on current_action
         next_node = self.get_next_node(self.current_node,
                                        self.current_action) if percept.bump == False else None
@@ -369,15 +389,32 @@ class ProbAgent(BeelineAgent):
     wumpus_stench_graph: WumpusBayesianNetwork = None
     grid_width: int = None
     grid_height: int = None
+    # percepts/evidence tracking, e.g {'stench@(x: 0, y: 0)': 'F'}
+    breeze_percepts: dict[str, str] = {}
+    stench_percepts: dict[str, str] = {}
+    # probabilities tracking
+    pits_probs: dict[Coords, float] = {}
+    wumpus_probs: dict[Coords, float] = {}
+    wumpus_dead: bool = False
 
     def __init__(self, grid_width: int = 4,
                  grid_height: int = 4,
-                 pit_location_prob: float = 0.2,
-                 wumpus_stench_prb: float = 0.1):
+                 pit_location_prob: float = 0.2):
         self.pits_breeze_graph = WumpusBayesianNetwork('Pits Breeze')
         self.wumpus_stench_graph = WumpusBayesianNetwork('Wumpus Stench')
         self.grid_height = grid_height
         self.grid_width = grid_width
+        self.pits_breeze_graph = self.prepare_prob_graph_pits_breeze(
+            grid_width=grid_width,
+            grid_height=grid_height,
+            independent_prob=pit_location_prob,
+            indepndent_prob_node_label="pit",
+            dependent_prob_node_label="breeze"
+        )
+        self.wumpus_stench_graph = self.prepare_prob_graph_wumpus_stench(
+            grid_width=grid_width,
+            grid_height=grid_height
+        )
 
     def prepare_prob_graph_pits_breeze(self,
                                        grid_width: int,
@@ -581,6 +618,101 @@ class ProbAgent(BeelineAgent):
 
         model.bake()
         return model
+
+    def update_probs(self):
+        """Updates the probabilities for the wumpus and pit at each 
+        of the possible location using `wumpus_prob` and `pits_probs`
+        """
+        pits_updated_probs = self.pits_breeze_graph.get_node_probabilities_for_evidence(
+            evidence=self.breeze_percepts
+        )
+        for loc_str, prob_table in pits_updated_probs.items():
+            loc = Coords.from_string(loc_str[4:])
+            prob = float(prob_table['T'])
+            self.pits_probs[loc] = prob
+
+        wumpus_updated_probs = self.wumpus_stench_graph.get_node_probabilities_for_evidence(
+            evidence=self.stench_percepts
+        )
+        for loc_str, prob in wumpus_updated_probs['wumpus'].items():
+            loc = Coords.from_string(loc_str)
+            self.wumpus_probs[loc] = float(prob)
+
+    def update_evidence(self, loc: Coords, percept: Percept):
+        breeze_loc_label = "breeze@"+str(loc)
+        self.breeze_percepts[breeze_loc_label] = 'T' if percept.breeze else 'F'
+
+        stench_loc_label = "stench@"+str(loc)
+        self.stench_percepts[stench_loc_label] = 'T' if percept.stench else 'F'
+
+        # if scream then wumpus is dead!
+        if percept.scream:
+            self.wumpus_dead = True
+
+    def next_action(self, percept: Percept, debug_action: Action = None) -> Action:
+        """Method determines the next action based on the `percept` experienced from
+        the environment. It first updates the agent's position in the game using the current
+        node and current (previous) action, before determening whether it needs to pick
+        next action or follow exit path if it has found the gold
+
+        Args:
+            percept (Percept): The percept passed from the environment
+            debug_action (Action, optional): Used for debuggin in test mode. Defaults to None.
+
+        Returns:
+            Action: The next action to take
+        """
+
+        # Step 1 - need to update the graph based on current_action
+        next_node = self.get_next_node(self.current_node,
+                                       self.current_action) if percept.bump == False else None
+
+        if next_node is not None:
+            existing_node = self.graph.find_node(next_node)
+            next_node = next_node if existing_node is None else existing_node
+
+            self.update_graph(next_node, self.current_action)
+            self.current_node = next_node
+
+        # Step 2 - update state variables tracking where wumpus/pit
+        # could be based on percepts experienced
+        self.update_evidence(loc=self.current_node.location,
+                             percept=percept)
+
+        # if agent has gold, it should be following its path
+        # out using what it remembered from its graph
+        next_selected_action = None
+        if self.current_action == Action.Grab:
+            self.exit_path_actions = self.determine_exit_path()
+
+        if self.current_node.location == Coords(0, 0) and self.has_gold:
+            next_selected_action = Action.Climb
+        elif self.has_gold:
+            next_selected_action = self.exit_path_actions.pop(0)
+        elif percept.glitter:
+            self.has_gold = True
+            next_selected_action = Action.Grab
+
+        # if next_action is none - we are not on exit path yet, and no gold
+        # in sight - random action ensuing
+        if next_selected_action is None:
+            allowed_actions = Action.get_all()
+            allowed_actions.remove(Action.Climb)
+
+            # only allow grab action from random pool of actions if glitter sensed
+            # or agent doesn't have the gold
+            if percept.glitter == False or self.has_gold:
+                allowed_actions.remove(Action.Grab)
+
+            self.percept = percept  # not sure if we need this
+            next_selected_action = debug_action if debug_action is not None else self.random_action(
+                allowed_actions)
+
+        # return next_Action to the game
+        self.current_action = next_selected_action
+        return next_selected_action
+
+    # Helpers
 
     def adjacent_cells(self, coords: Coords) -> List[Coords]:
         """Return a list of neighboring cells to the given coordinates.
