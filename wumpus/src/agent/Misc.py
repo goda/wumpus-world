@@ -1,3 +1,4 @@
+from typing import List
 import networkx as nx
 import matplotlib.pyplot as plt
 from wumpus.src.environment.Misc import Action, Coords, OrientationState
@@ -19,6 +20,8 @@ class WumpusNode:
         return "{""L:"" " + str(self.location) + ", ""O"": " + self.orientation_state.name + "}"
 
     def __eq__(self, __o: object) -> bool:
+        if __o == None:
+            return False
         return self.location == __o.location and self.orientation_state == __o.orientation_state
 
     def __hash__(self):
@@ -76,6 +79,15 @@ class WumpusDiGraph(nx.DiGraph):
                 return n
 
         return None
+
+    def get_locations(self) -> List[Coords]:
+        """Simple helper to get a list of all locations in the graph
+        in terms of `Coords`
+
+        Returns:
+            List[Coords]: list of all locations in the graph
+        """
+        return [n.location for n in self.nodes]
 
     def display_graph(self) -> None:
         G = self
@@ -147,3 +159,18 @@ class WumpusBayesianNetwork(BayesianNetwork):
         plt.figure(figsize=(14, 10))
         super().plot()
         plt.show()
+
+
+class WumpusCoordsDict(dict[Coords, float]):
+    """Helper class to allow for easier printing of dict
+
+    Args:
+        dict (dict[Coords, float]): `Coords` are the keys, and `float` are the values
+    """
+
+    def __str__(self) -> str:
+        s = []
+        for a, b in self.items():
+            s.append("'{0}': {1}".format(str(a), str(b)))
+
+        return '{' + ', '.join(s) + '}'

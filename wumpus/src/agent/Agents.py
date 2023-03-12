@@ -3,7 +3,7 @@ import random
 from typing import List
 
 from matplotlib import pyplot as plt
-from wumpus.src.agent.Misc import WumpusDiGraph, WumpusEdge, WumpusNode, WumpusBayesianNetwork
+from wumpus.src.agent.Misc import WumpusCoordsDict, WumpusDiGraph, WumpusEdge, WumpusNode, WumpusBayesianNetwork
 from wumpus.src.environment.Misc import Action, Coords, Orientation, OrientationState, Percept
 import networkx as nx
 from pomegranate import Node, DiscreteDistribution, ConditionalProbabilityTable
@@ -290,7 +290,18 @@ class BeelineAgent(NaiveAgent):
             from_int_node = to_int_node
 
     def get_required_turn_actions_to_move_forward(self, from_node: WumpusNode,
-                                                  to_node: WumpusNode):
+                                                  to_node: WumpusNode) -> List[Action]:
+        """Gets the required turn actions so that agent can move
+        `from_node`, including its orientation, to the `to_node`. The orientation
+        of the `to_node` isn't considered, just to get there is enough with the turns
+
+        Args:
+            from_node (WumpusNode): Current agent location, coords as `WumpusNode`
+            to_node (WumpusNode): Destination agent location, coords as `WumpusNode`
+
+        Returns:
+            List[Action]: list of turn actions required 
+        """
         orientation_required = OrientationState.East
         if from_node.location.x == to_node.location.x:
             if from_node.location.y > to_node.location.y:
@@ -309,6 +320,16 @@ class BeelineAgent(NaiveAgent):
     def get_required_turn_actions_to_align(self,
                                            from_orientation: OrientationState,
                                            orientation_required: OrientationState) -> List[Action]:
+        """The required turns to ensure one can get `from_orientation` orientation, to 
+        `orientation_required`
+
+        Args:
+            from_orientation (OrientationState): The starting orientation
+            orientation_required (OrientationState): The final orientation
+
+        Returns:
+            List[Action]: The list of turn actions required to accomplish alignment
+        """
         required_turns = from_orientation.value - orientation_required.value
         if abs(required_turns) == 2:
             required_actions = [Action.TurnLeft, Action.TurnLeft]
@@ -390,16 +411,26 @@ class ProbAgent(BeelineAgent):
     grid_width: int = None
     grid_height: int = None
     # percepts/evidence tracking, e.g {'stench@(x: 0, y: 0)': 'F'}
-    breeze_percepts: dict[str, str] = {}
-    stench_percepts: dict[str, str] = {}
+    breeze_percepts: dict[str, str]
+    stench_percepts: dict[str, str]
     # probabilities tracking
-    pits_probs: dict[Coords, float] = {}
-    wumpus_probs: dict[Coords, float] = {}
+    pits_probs: WumpusCoordsDict
+    wumpus_probs: WumpusCoordsDict
+    combined_probs: WumpusCoordsDict
     wumpus_dead: bool = False
+    #
+    queue_turn_actions: List[Action] = []
+    quit_and_exit: bool = False
+    # to store unvisited locations that were adjacent along the path we've taken
+    # so that we can go back and explore if we've hit a high risk node
+    adjacent_unvisited_locs: List[Coords] = []
 
     def __init__(self, grid_width: int = 4,
                  grid_height: int = 4,
+                 init_coords: Coords = Coords(0, 0),
+                 init_orientation: OrientationState = OrientationState.East,
                  pit_location_prob: float = 0.2):
+        super().__init__(init_coords=init_coords, init_orientation=init_orientation)
         self.pits_breeze_graph = WumpusBayesianNetwork('Pits Breeze')
         self.wumpus_stench_graph = WumpusBayesianNetwork('Wumpus Stench')
         self.grid_height = grid_height
@@ -415,6 +446,13 @@ class ProbAgent(BeelineAgent):
             grid_width=grid_width,
             grid_height=grid_height
         )
+        self.breeze_percepts = {}
+        self.stench_percepts = {}
+        self.pits_probs = WumpusCoordsDict()
+        self.wumpus_probs = WumpusCoordsDict()
+        self.combined_probs = WumpusCoordsDict()
+        self.pits_probs[Coords(0, 0)] = 0
+        self.wumpus_probs[Coords(0, 0)] = 0
 
     def prepare_prob_graph_pits_breeze(self,
                                        grid_width: int,
@@ -623,6 +661,11 @@ class ProbAgent(BeelineAgent):
         """Updates the probabilities for the wumpus and pit at each 
         of the possible location using `wumpus_prob` and `pits_probs`
         """
+        print('////////////////')
+        print('////////////////')
+        print(self.breeze_percepts)
+        print('////////////////')
+        print('////////////////')
         pits_updated_probs = self.pits_breeze_graph.get_node_probabilities_for_evidence(
             evidence=self.breeze_percepts
         )
@@ -630,6 +673,7 @@ class ProbAgent(BeelineAgent):
             loc = Coords.from_string(loc_str[4:])
             prob = float(prob_table['T'])
             self.pits_probs[loc] = prob
+            # print('p', loc, prob)
 
         wumpus_updated_probs = self.wumpus_stench_graph.get_node_probabilities_for_evidence(
             evidence=self.stench_percepts
@@ -637,6 +681,20 @@ class ProbAgent(BeelineAgent):
         for loc_str, prob in wumpus_updated_probs['wumpus'].items():
             loc = Coords.from_string(loc_str)
             self.wumpus_probs[loc] = float(prob)
+            # print('w', loc, prob)
+
+        # update the combined probabilities so we have them handy for the whole
+        # grid
+        visited_locs = self.graph.get_locations()
+        all_locs = [Coords(x, y)
+                    for x in range(0, self.grid_width)
+                    for y in range(0, self.grid_height)]
+        self.calculate_combined_probs(
+            pits_probs=self.pits_probs,
+            wumpus_probs=self.wumpus_probs,
+            combined_probs=self.combined_probs,
+            visited_locs=visited_locs,
+            locs_to_update=all_locs)
 
     def update_evidence(self, loc: Coords, percept: Percept):
         breeze_loc_label = "breeze@"+str(loc)
@@ -647,6 +705,15 @@ class ProbAgent(BeelineAgent):
 
         # if scream then wumpus is dead!
         if percept.scream:
+            wumpus_possible_loc = [(Coords(x, y))
+                                   for x in range(0, self.grid_width)
+                                   for y in range(0, self.grid_height) if (x != 0 or y != 0)]
+
+            # update these once
+            for l in wumpus_possible_loc:
+                stench_loc_label = "stench@"+str(l)
+                self.stench_percepts[stench_loc_label] = 'F'
+
             self.wumpus_dead = True
 
     def next_action(self, percept: Percept, debug_action: Action = None) -> Action:
@@ -675,10 +742,14 @@ class ProbAgent(BeelineAgent):
             self.current_node = next_node
 
         # Step 2 - update state variables tracking where wumpus/pit
-        # could be based on percepts experienced
-        self.update_evidence(loc=self.current_node.location,
-                             percept=percept)
+        # could be based on percepts experienced (only if not game over in sense
+        # that we are leaving or have gold already)
+        if self.quit_and_exit == False or self.has_gold:
+            self.update_evidence(loc=self.current_node.location,
+                                 percept=percept)
+            self.update_probs()
 
+        # Step 3 - determening action
         # if agent has gold, it should be following its path
         # out using what it remembered from its graph
         next_selected_action = None
@@ -687,7 +758,7 @@ class ProbAgent(BeelineAgent):
 
         if self.current_node.location == Coords(0, 0) and self.has_gold:
             next_selected_action = Action.Climb
-        elif self.has_gold:
+        elif self.has_gold or self.quit_and_exit:
             next_selected_action = self.exit_path_actions.pop(0)
         elif percept.glitter:
             self.has_gold = True
@@ -695,7 +766,7 @@ class ProbAgent(BeelineAgent):
 
         # if next_action is none - we are not on exit path yet, and no gold
         # in sight - random action ensuing
-        if next_selected_action is None:
+        if next_selected_action is None and self.queue_turn_actions == []:
             allowed_actions = Action.get_all()
             allowed_actions.remove(Action.Climb)
 
@@ -705,14 +776,174 @@ class ProbAgent(BeelineAgent):
                 allowed_actions.remove(Action.Grab)
 
             self.percept = percept  # not sure if we need this
-            next_selected_action = debug_action if debug_action is not None else self.random_action(
-                allowed_actions)
+
+            # Determening next action based on probs and percepts
+            print('HEre again')
+            next_selected_action = debug_action if debug_action is not None \
+                else self.determine_next_action()
+            if next_selected_action == None and (self.queue_turn_actions == None
+                                                 or self.queue_turn_actions == []):
+                print('NEed to exit Im scared')
+                # need to exit!!!
+                self.exit_path_actions = self.determine_exit_path()
+                self.quit_and_exit = True
+                next_selected_action = self.exit_path_actions.pop(0)
+            elif self.queue_turn_actions != None and self.queue_turn_actions != []:
+                print('Not exiting exploring still!')
+                next_selected_action = self.queue_turn_actions.pop(0)
+        elif self.queue_turn_actions != []:
+            next_selected_action = self.queue_turn_actions.pop(0)
+            print('Executing turn actions', next_selected_action)
 
         # return next_Action to the game
         self.current_action = next_selected_action
         return next_selected_action
 
+    def determine_next_action(self) -> Action:
+        """Method determines best next action to take for 
+        Agent based on evidence and updated probabilities of 
+        wumpus and stench surrounding it. 
+
+        Returns:
+            [Action]: The action to take next, returns 
+        """
+        print('Determening next action....', self.current_node)
+        next_possible_locs = self.adjacent_cells(self.current_node.location)
+        # get the probs of pit in all possible locs
+        adjacent_pits_probs = {}
+        adjacent_wumpus_probs = {}
+        adjacent_combined_probs = {}
+        safe_locations = self.graph.get_locations()
+        # self.calculate_combined_probs(
+        #     adjacent_pits_probs,
+        #     adjacent_wumpus_probs,
+        #     adjacent_combined_probs,
+        #     safe_locations,
+        #     next_possible_locs)
+        adjacent_combined_probs = WumpusCoordsDict(
+            filter(lambda pair: True if pair[0] in next_possible_locs else False,
+                   self.combined_probs.items())
+        )
+        print(self.combined_probs)
+
+        # min location with combined probability but also preferring new locations
+        # over visited ones
+        # that's next to do - and if all alrady visited go with lowest one
+        # if probab of dying is 50/50 then exit path and leave
+        # so we will need modify to accept abort mission action
+        sorted_adjacent_combined_probs = sorted(adjacent_combined_probs.items(),
+                                                key=lambda x: x[1], reverse=False)
+        print('((((()))))')
+        for s in sorted_adjacent_combined_probs:
+            print(s[0], s[1])
+        print('((((()))))')
+
+        # Step 2.
+        # Let's calculate the possible probability of dying by exploring
+        # new adjacent locations
+        new_loc_combined_probs = [x for x in sorted_adjacent_combined_probs
+                                  if self.graph.find_node_location(x[0]) == None]
+        num_new_loc = len(new_loc_combined_probs)
+        print(num_new_loc)
+        prob_dying_new_loc_move = 0.
+        # if we randomly picked one of the new locations, what is the chance
+        # of dying
+        for _, prob in new_loc_combined_probs:
+            prob_dying_new_loc_move += 1./num_new_loc * (prob)
+        print('Prob of dying,', prob_dying_new_loc_move)
+
+        # lowest probability of dying by moving to a new location
+        lowest_prob_dying_new_loc = 0
+        if new_loc_combined_probs != []:
+            lowest_prob_dying_new_loc = new_loc_combined_probs[0][1]
+            print('lowest prob dying is...', lowest_prob_dying_new_loc)
+
+        # Commenting this out for now - alternate strategy will be
+        # to do what we do below, go to the previous explored locations with
+        # lowest probability of dying (i.e. zero), and from there
+        # see if any other new locations (since this current one is visited)
+        # that will allow us to move elsewhere
+        # we might need to put a cap on how many times we will visit same locations
+        # maybe not more than 3-4 times? before giving up if probab dying new location
+        # is also very hight??
+
+        # make sure that no other adjacent node to the safe path taken so far
+        # has lower probability than lowest_prob_dying_new_loc, and if so then
+        # we want to go back through the safe path rather than explore this higher
+        # probability
+        min_adj_unvisited_loc_prob = 1
+        go_back_to_explore = False
+        for adj_unvisited_loc in self.adjacent_unvisited_locs:
+            print('Checking ', adj_unvisited_loc, ' to see its probability')
+            if self.combined_probs[adj_unvisited_loc] < lowest_prob_dying_new_loc:
+                # let's not explore to new location
+                go_back_to_explore = True
+                break
+
+        # Step 3. init next loc to lowest prob one for now
+        chosen_next_loc = sorted_adjacent_combined_probs[0][0]
+        for pot_loc, prob in sorted_adjacent_combined_probs:
+            print('Checking next loc', pot_loc, 'with prob', prob)
+            print('It is already visited ',
+                  self.graph.find_node_location(pot_loc) != None)
+            if self.graph.find_node_location(pot_loc) and \
+                    lowest_prob_dying_new_loc < 0.5 and \
+            go_back_to_explore == False:
+                # we've visited this node before, so don't consider
+                # taking it for now, as we don't fear dying in
+                # new locations (< 0.5)
+                continue
+            chosen_next_loc = pot_loc
+            break
+        print('Chosen next loc', chosen_next_loc)
+
+        # any unvisited adjacent nodes let's keep them for later
+        for pot_loc, _ in sorted_adjacent_combined_probs:
+            if self.graph.find_node_location(pot_loc) == None and \
+                    pot_loc != chosen_next_loc:
+                self.adjacent_unvisited_locs.append(pot_loc)
+
+        # Step 4. figure out how to record the actions required,
+        # to get to the adjacent location? Maybe have a stack of actions
+        # and if not empty in next_action we pop off from those (i.e. turn left,
+        # turn left, forward) until we get to the chosen_next_loc?
+        get_required_turn_actions = self.get_required_turn_actions_to_move_forward(
+            from_node=self.current_node,
+            to_node=WumpusNode(chosen_next_loc,
+                               orientation_state=self.current_node.orientation_state)
+        )
+        # next actions consist of the required turns, and forward as last action
+        self.queue_turn_actions = get_required_turn_actions + [Action.Forward]
+        return None
+
+    # NEED TO FINISH THIS - GET A CLASS VARIABLE TO HOLD THE COMBINED PROBABILITY
+    # AND USE THAT
+    def calculate_combined_probs(self,
+                                 pits_probs: WumpusCoordsDict,
+                                 wumpus_probs: WumpusCoordsDict,
+                                 combined_probs: WumpusCoordsDict,
+                                 visited_locs: List[Coords],
+                                 locs_to_update: List[Coords]):
+        for loc in locs_to_update:
+            if loc in visited_locs or loc == Coords(0, 0):
+                pit_prob = wumpus_prob = 0
+            else:
+                pit_prob = self.pits_probs[loc]
+                wumpus_prob = self.wumpus_probs[loc]
+
+            pits_probs[loc] = pit_prob
+            wumpus_probs[loc] = wumpus_prob
+            # combined probability of either wumpus/pits being T
+            # P_c = 1 - (1-P_w)(1-P_p) = P_p + P_w - P_p*P_w
+            combined_probs[loc] = wumpus_probs[loc] +\
+                pits_probs[loc] - \
+                wumpus_probs[loc]*pits_probs[loc]
+
+        # Optional step?. if we have arrow, figure out threshold prob, to fire
+        # it so that all in a given row/column could contain the wumpus and kill
+        # or at least rule out probability of wumpus?? no scream
     # Helpers
+    # def calculate
 
     def adjacent_cells(self, coords: Coords) -> List[Coords]:
         """Return a list of neighboring cells to the given coordinates.

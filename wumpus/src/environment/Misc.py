@@ -47,7 +47,7 @@ class Percept():
     bump: bool = False
     scream: bool = False
     is_terminated: bool = False
-    reward: bool = False
+    reward: int = 0
 
     def __init__(self,
                  stench: bool = False,
@@ -56,7 +56,7 @@ class Percept():
                  bump: bool = False,
                  scream: bool = False,
                  is_terminated: bool = False,
-                 reward: bool = False):
+                 reward: int = 0):
         self.stench = stench
         self.breeze = breeze
         self.glitter = glitter
