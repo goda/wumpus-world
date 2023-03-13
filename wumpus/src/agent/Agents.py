@@ -424,12 +424,20 @@ class ProbAgent(BeelineAgent):
     # to store unvisited locations that were adjacent along the path we've taken
     # so that we can go back and explore if we've hit a high risk node
     adjacent_unvisited_locs: List[Coords] = []
+    # max probability we alllow of dying in a new location in deciding whether
+    # to go there
+    max_prob_dying_new_loc: float = 0.4
+    # stores num of visits to each location by the agent
+    visited_locs: WumpusCoordsDict
+    max_number_visits_allowed: int = 4
 
     def __init__(self, grid_width: int = 4,
                  grid_height: int = 4,
                  init_coords: Coords = Coords(0, 0),
                  init_orientation: OrientationState = OrientationState.East,
-                 pit_location_prob: float = 0.2):
+                 pit_location_prob: float = 0.2,
+                 max_prob_dying_new_loc: float = 0.4,
+                 max_number_visits_allowed: int = 4):
         super().__init__(init_coords=init_coords, init_orientation=init_orientation)
         self.pits_breeze_graph = WumpusBayesianNetwork('Pits Breeze')
         self.wumpus_stench_graph = WumpusBayesianNetwork('Wumpus Stench')
@@ -451,8 +459,12 @@ class ProbAgent(BeelineAgent):
         self.pits_probs = WumpusCoordsDict()
         self.wumpus_probs = WumpusCoordsDict()
         self.combined_probs = WumpusCoordsDict()
+        self.visited_locs = WumpusCoordsDict()
         self.pits_probs[Coords(0, 0)] = 0
         self.wumpus_probs[Coords(0, 0)] = 0
+
+        self.max_prob_dying_new_loc = max_prob_dying_new_loc
+        self.max_number_visits_allowed = max_number_visits_allowed
 
     def prepare_prob_graph_pits_breeze(self,
                                        grid_width: int,
@@ -661,11 +673,6 @@ class ProbAgent(BeelineAgent):
         """Updates the probabilities for the wumpus and pit at each 
         of the possible location using `wumpus_prob` and `pits_probs`
         """
-        print('////////////////')
-        print('////////////////')
-        print(self.breeze_percepts)
-        print('////////////////')
-        print('////////////////')
         pits_updated_probs = self.pits_breeze_graph.get_node_probabilities_for_evidence(
             evidence=self.breeze_percepts
         )
@@ -739,6 +746,14 @@ class ProbAgent(BeelineAgent):
             next_node = next_node if existing_node is None else existing_node
 
             self.update_graph(next_node, self.current_action)
+            # print
+            if next_node.location != self.current_node.location:
+                print('Updating visit locations')
+                if self.current_node.location in self.visited_locs.keys():
+                    self.visited_locs[self.current_node.location] = self.visited_locs[self.current_node.location] + 1
+                else:
+                    self.visited_locs[self.current_node.location] = 1
+
             self.current_node = next_node
 
         # Step 2 - update state variables tracking where wumpus/pit
@@ -767,20 +782,12 @@ class ProbAgent(BeelineAgent):
         # if next_action is none - we are not on exit path yet, and no gold
         # in sight - random action ensuing
         if next_selected_action is None and self.queue_turn_actions == []:
-            allowed_actions = Action.get_all()
-            allowed_actions.remove(Action.Climb)
-
-            # only allow grab action from random pool of actions if glitter sensed
-            # or agent doesn't have the gold
-            if percept.glitter == False or self.has_gold:
-                allowed_actions.remove(Action.Grab)
-
             self.percept = percept  # not sure if we need this
 
             # Determening next action based on probs and percepts
-            print('HEre again')
             next_selected_action = debug_action if debug_action is not None \
-                else self.determine_next_action()
+                else self.determine_next_action(self.max_prob_dying_new_loc,
+                                                self.max_number_visits_allowed)
             if next_selected_action == None and (self.queue_turn_actions == None
                                                  or self.queue_turn_actions == []):
                 print('NEed to exit Im scared')
@@ -799,7 +806,9 @@ class ProbAgent(BeelineAgent):
         self.current_action = next_selected_action
         return next_selected_action
 
-    def determine_next_action(self) -> Action:
+    def determine_next_action(self,
+                              max_prob_dying_new_loc: float,
+                              max_number_visits_allowed: int) -> Action:
         """Method determines best next action to take for 
         Agent based on evidence and updated probabilities of 
         wumpus and stench surrounding it. 
@@ -810,16 +819,7 @@ class ProbAgent(BeelineAgent):
         print('Determening next action....', self.current_node)
         next_possible_locs = self.adjacent_cells(self.current_node.location)
         # get the probs of pit in all possible locs
-        adjacent_pits_probs = {}
-        adjacent_wumpus_probs = {}
         adjacent_combined_probs = {}
-        safe_locations = self.graph.get_locations()
-        # self.calculate_combined_probs(
-        #     adjacent_pits_probs,
-        #     adjacent_wumpus_probs,
-        #     adjacent_combined_probs,
-        #     safe_locations,
-        #     next_possible_locs)
         adjacent_combined_probs = WumpusCoordsDict(
             filter(lambda pair: True if pair[0] in next_possible_locs else False,
                    self.combined_probs.items())
@@ -828,11 +828,10 @@ class ProbAgent(BeelineAgent):
 
         # min location with combined probability but also preferring new locations
         # over visited ones
-        # that's next to do - and if all alrady visited go with lowest one
-        # if probab of dying is 50/50 then exit path and leave
-        # so we will need modify to accept abort mission action
         sorted_adjacent_combined_probs = sorted(adjacent_combined_probs.items(),
                                                 key=lambda x: x[1], reverse=False)
+        dict_sorted_adjacent_combined_probs = dict(
+            sorted_adjacent_combined_probs)
         print('((((()))))')
         for s in sorted_adjacent_combined_probs:
             print(s[0], s[1])
@@ -850,57 +849,95 @@ class ProbAgent(BeelineAgent):
         # of dying
         for _, prob in new_loc_combined_probs:
             prob_dying_new_loc_move += 1./num_new_loc * (prob)
-        print('Prob of dying,', prob_dying_new_loc_move)
+        print('Cumulative Prob of dying,', prob_dying_new_loc_move)
 
         # lowest probability of dying by moving to a new location
         lowest_prob_dying_new_loc = 0
         if new_loc_combined_probs != []:
             lowest_prob_dying_new_loc = new_loc_combined_probs[0][1]
-            print('lowest prob dying is...', lowest_prob_dying_new_loc)
+            print('lowest prob dying is...', lowest_prob_dying_new_loc, 'at',
+                  new_loc_combined_probs[0][0])
 
-        # Commenting this out for now - alternate strategy will be
-        # to do what we do below, go to the previous explored locations with
-        # lowest probability of dying (i.e. zero), and from there
-        # see if any other new locations (since this current one is visited)
-        # that will allow us to move elsewhere
         # we might need to put a cap on how many times we will visit same locations
         # maybe not more than 3-4 times? before giving up if probab dying new location
-        # is also very hight??
+        # is also very high??
 
         # make sure that no other adjacent node to the safe path taken so far
         # has lower probability than lowest_prob_dying_new_loc, and if so then
         # we want to go back through the safe path rather than explore this higher
         # probability
-        min_adj_unvisited_loc_prob = 1
-        go_back_to_explore = False
-        for adj_unvisited_loc in self.adjacent_unvisited_locs:
-            print('Checking ', adj_unvisited_loc, ' to see its probability')
-            if self.combined_probs[adj_unvisited_loc] < lowest_prob_dying_new_loc:
-                # let's not explore to new location
-                go_back_to_explore = True
-                break
+        # AMENDMENT: only check for other adjacent node probabilities in other path areas
+        # if the lowest_prob_dying_new_loc is above our threshold
+        acceptable_prob_path_adj_loc_exists = False
+        quit_and_exit = False
+        if lowest_prob_dying_new_loc > max_prob_dying_new_loc:
+            print('Going through other adjacent locations to see their probs')
+            print(self.adjacent_unvisited_locs)
+            for adj_unvisited_loc in self.adjacent_unvisited_locs:
+                print('Checking ', adj_unvisited_loc,
+                      ' to see its probability')
+                if self.combined_probs[adj_unvisited_loc] < lowest_prob_dying_new_loc and \
+                        self.combined_probs[adj_unvisited_loc] < max_prob_dying_new_loc:
+                    # let's not explore to new location
+                    acceptable_prob_path_adj_loc_exists = True
+                    break
+                if acceptable_prob_path_adj_loc_exists == False:
+                    quit_and_exit = True
 
-        # Step 3. init next loc to lowest prob one for now
-        chosen_next_loc = sorted_adjacent_combined_probs[0][0]
+        # Step 2b. if no adjacent location exists anywhere near the path
+        # that has probability less than maximum threshold then we panic and exit
+        if quit_and_exit:
+            self.queue_turn_actions = []
+            return None
+
+        # Step 3. init next loc to lowest prob one for now. Try
+        # and pick a new location with the minimum prob of dying
+        # such that it's less than our threshold
+        chosen_next_loc: Coords = None  # sorted_adjacent_combined_probs[0][0]
         for pot_loc, prob in sorted_adjacent_combined_probs:
             print('Checking next loc', pot_loc, 'with prob', prob)
             print('It is already visited ',
                   self.graph.find_node_location(pot_loc) != None)
-            if self.graph.find_node_location(pot_loc) and \
-                    lowest_prob_dying_new_loc < 0.5 and \
-            go_back_to_explore == False:
-                # we've visited this node before, so don't consider
-                # taking it for now, as we don't fear dying in
-                # new locations (< 0.5)
-                continue
-            chosen_next_loc = pot_loc
-            break
+            # if self.graph.find_node_location(pot_loc) and \
+            #         lowest_prob_dying_new_loc < max_prob_dying_new_loc and \
+            # acceptable_prob_path_adj_loc_exists == False:
+            #     # we've visited this node before, so don't consider
+            #     # taking it for now, as we don't fear dying in
+            #     # new locations (< 0.5)
+            #     continue
+            # chosen_next_loc = pot_loc
+            # break
+            if (not self.graph.find_node_location(pot_loc)
+                # or lowest_prob_dying_new_loc >= max_prob_dying_new_loc
+                    or acceptable_prob_path_adj_loc_exists):
+                chosen_next_loc = pot_loc
+                break
+
+        # if haven't chosen next_loc then need to pick from
+        # adjacent based on frequency of visit
+        if chosen_next_loc == None:
+            print('No chosen new loc')
+            sorted_visited_locs_list = sorted(self.visited_locs.items(),
+                                              key=lambda x: x[1], reverse=False)
+            sorted_visited_locs = dict(sorted_visited_locs_list)
+            # if we have exceeded number of visits without eclipsing risk probability
+            # let's just leave
+            if len(sorted_visited_locs_list) > 0 \
+                    and sorted_visited_locs_list[0][1] > max_number_visits_allowed:
+                return None
+            for loc, _ in sorted_visited_locs.items():
+                if loc in next_possible_locs:
+                    print('Going to prefer this visited loc', loc,
+                          'with visit count ', sorted_visited_locs[loc])
+                    chosen_next_loc = loc
+                    break
+
         print('Chosen next loc', chosen_next_loc)
 
         # any unvisited adjacent nodes let's keep them for later
         for pot_loc, _ in sorted_adjacent_combined_probs:
             if self.graph.find_node_location(pot_loc) == None and \
-                    pot_loc != chosen_next_loc:
+                    pot_loc != chosen_next_loc and pot_loc not in self.adjacent_unvisited_locs:
                 self.adjacent_unvisited_locs.append(pot_loc)
 
         # Step 4. figure out how to record the actions required,

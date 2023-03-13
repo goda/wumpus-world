@@ -82,6 +82,8 @@ class Coords():
         self.y = y
 
     def __eq__(self, __o: object) -> bool:
+        if __o == None:
+            return False        
         return self.x == __o.x and self.y == __o.y
 
     def __str__(self) -> str:

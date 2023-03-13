@@ -915,29 +915,29 @@ class TestProbAgent(unittest.TestCase):
             Coords(1, 3),
         ]
         # place gold at 2,0
-        env.gold_location = Coords(1, 2)
+        env.gold_location = Coords(2, 2)
         env.wumpus_location = Coords(2, 1)
 
-        actions_to_quit = [
-            Action.Forward,
-            Action.Forward,
-        ]
+        # actions_to_quit = [
+        #     Action.Forward,
+        #     Action.Forward,
+        # ]
 
-        # 2.START AGENT ACTIONS
-        for a in actions_to_quit:
-            next_action = a
-            next_action = agent.next_action(percept,
-                                            debug_action=next_action)
-            # print('Printing agent breeze percepts')
-            # print(agent.breeze_percepts)
-            # print(agent.stench_percepts)
-            print('---------------------')
-            (env, percept) = env.apply_action(next_action)
-            # print("Action: ", str(next_action.name), "| Agent Orientation: ", env.agent.orientation.state.name)
-            print(env.visualize())
-            print(percept.show())
-            # print("Action: ", str(next_action.name),
-            #       "| Agent Orientation: ", env.agent.orientation.state.name)
+        # # 2.START AGENT ACTIONS
+        # for a in actions_to_quit:
+        #     next_action = a
+        #     next_action = agent.next_action(percept,
+        #                                     debug_action=next_action)
+        #     # print('Printing agent breeze percepts')
+        #     # print(agent.breeze_percepts)
+        #     # print(agent.stench_percepts)
+        #     print('---------------------')
+        #     (env, percept) = env.apply_action(next_action)
+        #     # print("Action: ", str(next_action.name), "| Agent Orientation: ", env.agent.orientation.state.name)
+        #     print(env.visualize())
+        #     print(percept.show())
+        #     # print("Action: ", str(next_action.name),
+        #     #       "| Agent Orientation: ", env.agent.orientation.state.name)
 
         # try to see without debug_action, Agent should want to MOVE BACK,
         # to origin, and then go north to get gold
@@ -977,6 +977,19 @@ class TestWumpusCoordsDict(unittest.TestCase):
     #     assert(sorted_probs[-1][0] == Coords(0, 1))
     #     # for a, b in sorted_probs:
     #     #     print(a, b)
+
+    # def test_sort_dict(self):
+    #     footballers_goals = {'Eusebio': 120, 'Cruyff': 104,
+    #                          'Pele': 150, 'Ronaldo': 132, 'Messi': 125}
+
+    #     sorted_footballers_by_goals = sorted(
+    #         footballers_goals.items(), key=lambda x: x[1])
+    #     converted_dict = dict(sorted_footballers_by_goals)
+
+    #     for k, a in converted_dict.items():
+    #         print(k)
+    #     print(converted_dict)
+        # Output: {'Cruyff': 104, 'Eusebio': 120, 'Messi': 125, 'Ronaldo': 132, 'Pele': 150}
 
     def test_filter(self):
         print('\n')
