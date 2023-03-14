@@ -900,13 +900,13 @@ class TestProbAgent(unittest.TestCase):
     #     assert(env.agent.location == Coords(0, 0))
     #     assert(percept.glitter == True)
 
-    def test_agent_determine_next_action_give_up(self):
+    def test_agent_determine_next_action_no_give_up(self):
         # 1. Setup environment
         env: Environment
         percept: Percept
         (env, percept) = Environment.initialize(4, 4, 0, False)
         # init agent and check if he's in the right place
-        agent = ProbAgent()
+        agent = ProbAgent(max_prob_dying_new_loc=0.35)
         assert(agent.current_node.location == Coords(0, 0))
         env.pit_locations = [
             Coords(1, 1),
@@ -915,29 +915,8 @@ class TestProbAgent(unittest.TestCase):
             Coords(1, 3),
         ]
         # place gold at 2,0
-        env.gold_location = Coords(2, 2)
+        env.gold_location = Coords(2, 3)
         env.wumpus_location = Coords(2, 1)
-
-        # actions_to_quit = [
-        #     Action.Forward,
-        #     Action.Forward,
-        # ]
-
-        # # 2.START AGENT ACTIONS
-        # for a in actions_to_quit:
-        #     next_action = a
-        #     next_action = agent.next_action(percept,
-        #                                     debug_action=next_action)
-        #     # print('Printing agent breeze percepts')
-        #     # print(agent.breeze_percepts)
-        #     # print(agent.stench_percepts)
-        #     print('---------------------')
-        #     (env, percept) = env.apply_action(next_action)
-        #     # print("Action: ", str(next_action.name), "| Agent Orientation: ", env.agent.orientation.state.name)
-        #     print(env.visualize())
-        #     print(percept.show())
-        #     # print("Action: ", str(next_action.name),
-        #     #       "| Agent Orientation: ", env.agent.orientation.state.name)
 
         # try to see without debug_action, Agent should want to MOVE BACK,
         # to origin, and then go north to get gold

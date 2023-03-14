@@ -748,11 +748,21 @@ class ProbAgent(BeelineAgent):
             self.update_graph(next_node, self.current_action)
             # print
             if next_node.location != self.current_node.location:
+                cur_loc = self.current_node.location
                 print('Updating visit locations')
-                if self.current_node.location in self.visited_locs.keys():
-                    self.visited_locs[self.current_node.location] = self.visited_locs[self.current_node.location] + 1
+                if cur_loc in self.visited_locs.keys():
+                    self.visited_locs[cur_loc] += 1
                 else:
-                    self.visited_locs[self.current_node.location] = 1
+                    self.visited_locs[cur_loc] = 1
+
+            if next_node.location in self.adjacent_unvisited_locs:
+                print('Removing', next_node.location,
+                      ' from adj unvisited loc')
+                print('Before remove ', len(self.adjacent_unvisited_locs))
+                for l in self.adjacent_unvisited_locs:
+                    print(l)
+                self.adjacent_unvisited_locs.remove(next_node.location)
+                print('After remove ', len(self.adjacent_unvisited_locs))
 
             self.current_node = next_node
 
@@ -790,7 +800,7 @@ class ProbAgent(BeelineAgent):
                                                 self.max_number_visits_allowed)
             if next_selected_action == None and (self.queue_turn_actions == None
                                                  or self.queue_turn_actions == []):
-                print('NEed to exit Im scared')
+                print('Need to exit Im scared')
                 # need to exit!!!
                 self.exit_path_actions = self.determine_exit_path()
                 self.quit_and_exit = True
@@ -830,8 +840,8 @@ class ProbAgent(BeelineAgent):
         # over visited ones
         sorted_adjacent_combined_probs = sorted(adjacent_combined_probs.items(),
                                                 key=lambda x: x[1], reverse=False)
-        dict_sorted_adjacent_combined_probs = dict(
-            sorted_adjacent_combined_probs)
+        # dict_sorted_adjacent_combined_probs = dict(
+        #     sorted_adjacent_combined_probs)
         print('((((()))))')
         for s in sorted_adjacent_combined_probs:
             print(s[0], s[1])
@@ -843,13 +853,13 @@ class ProbAgent(BeelineAgent):
         new_loc_combined_probs = [x for x in sorted_adjacent_combined_probs
                                   if self.graph.find_node_location(x[0]) == None]
         num_new_loc = len(new_loc_combined_probs)
-        print(num_new_loc)
-        prob_dying_new_loc_move = 0.
-        # if we randomly picked one of the new locations, what is the chance
-        # of dying
-        for _, prob in new_loc_combined_probs:
-            prob_dying_new_loc_move += 1./num_new_loc * (prob)
-        print('Cumulative Prob of dying,', prob_dying_new_loc_move)
+        print('New loca', num_new_loc)
+        # prob_dying_new_loc_move = 0.
+        # # if we randomly picked one of the new locations, what is the chance
+        # # of dying
+        # for _, prob in new_loc_combined_probs:
+        #     prob_dying_new_loc_move += 1./num_new_loc * (prob)
+        # print('Cumulative Prob of dying,', prob_dying_new_loc_move)
 
         # lowest probability of dying by moving to a new location
         lowest_prob_dying_new_loc = 0
@@ -872,16 +882,18 @@ class ProbAgent(BeelineAgent):
         quit_and_exit = False
         if lowest_prob_dying_new_loc > max_prob_dying_new_loc:
             print('Going through other adjacent locations to see their probs')
-            print(self.adjacent_unvisited_locs)
             for adj_unvisited_loc in self.adjacent_unvisited_locs:
-                print('Checking ', adj_unvisited_loc,
-                      ' to see its probability')
+                print('Checking ADJACENT UNVISITED ', adj_unvisited_loc,
+                      ' to see its probability', self.combined_probs[adj_unvisited_loc],
+                      ' < ', lowest_prob_dying_new_loc, '< ', max_prob_dying_new_loc)
                 if self.combined_probs[adj_unvisited_loc] < lowest_prob_dying_new_loc and \
                         self.combined_probs[adj_unvisited_loc] < max_prob_dying_new_loc:
                     # let's not explore to new location
                     acceptable_prob_path_adj_loc_exists = True
+                    quit_and_exit = False
                     break
                 if acceptable_prob_path_adj_loc_exists == False:
+                    print('Could not find acceptable adj loc...')
                     quit_and_exit = True
 
         # Step 2b. if no adjacent location exists anywhere near the path
@@ -935,9 +947,12 @@ class ProbAgent(BeelineAgent):
         print('Chosen next loc', chosen_next_loc)
 
         # any unvisited adjacent nodes let's keep them for later
+        print('Need to update list of adj unvisited locations')
         for pot_loc, _ in sorted_adjacent_combined_probs:
+            print('Candidate ', pot_loc)
             if self.graph.find_node_location(pot_loc) == None and \
                     pot_loc != chosen_next_loc and pot_loc not in self.adjacent_unvisited_locs:
+                print(pot_loc, ' is unvisited')
                 self.adjacent_unvisited_locs.append(pot_loc)
 
         # Step 4. figure out how to record the actions required,
