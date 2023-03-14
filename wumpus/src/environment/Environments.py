@@ -84,6 +84,8 @@ class Environment():
         elif self.agent.orientation.state == OrientationState.South:
             return self.agent.location.x == self.wumpus_location.x and self.agent.location.y > self.wumpus_location.y
 
+        return False
+
     def kill_attempt_successful(self) -> bool:
         return self.agent.has_arrow and self.wumpus_alive and self.wumpus_in_line_of_fire()
 

@@ -430,6 +430,8 @@ class ProbAgent(BeelineAgent):
     # stores num of visits to each location by the agent
     visited_locs: WumpusCoordsDict
     max_number_visits_allowed: int = 4
+    # arrow counter
+    has_arrow: bool
 
     def __init__(self, grid_width: int = 4,
                  grid_height: int = 4,
@@ -465,6 +467,8 @@ class ProbAgent(BeelineAgent):
 
         self.max_prob_dying_new_loc = max_prob_dying_new_loc
         self.max_number_visits_allowed = max_number_visits_allowed
+
+        self.has_arrow = True
 
     def prepare_prob_graph_pits_breeze(self,
                                        grid_width: int,
@@ -712,6 +716,7 @@ class ProbAgent(BeelineAgent):
 
         # if scream then wumpus is dead!
         if percept.scream:
+            print('We killed wumpus')
             wumpus_possible_loc = [(Coords(x, y))
                                    for x in range(0, self.grid_width)
                                    for y in range(0, self.grid_height) if (x != 0 or y != 0)]
@@ -796,7 +801,8 @@ class ProbAgent(BeelineAgent):
 
             # Determening next action based on probs and percepts
             next_selected_action = debug_action if debug_action is not None \
-                else self.determine_next_action(self.max_prob_dying_new_loc,
+                else self.determine_next_action(percept,
+                                                self.max_prob_dying_new_loc,
                                                 self.max_number_visits_allowed)
             if next_selected_action == None and (self.queue_turn_actions == None
                                                  or self.queue_turn_actions == []):
@@ -806,17 +812,22 @@ class ProbAgent(BeelineAgent):
                 self.quit_and_exit = True
                 next_selected_action = self.exit_path_actions.pop(0)
             elif self.queue_turn_actions != None and self.queue_turn_actions != []:
-                print('Not exiting exploring still!')
+                print('Not exiting exploring/killing still!')
                 next_selected_action = self.queue_turn_actions.pop(0)
+                print('Next turn/kill actions', next_selected_action)
         elif self.queue_turn_actions != []:
             next_selected_action = self.queue_turn_actions.pop(0)
-            print('Executing turn actions', next_selected_action)
+            print('Next turn/kill actions', next_selected_action)
 
+        if next_selected_action == Action.Shoot:
+            print('No longer has arrow okay')
+            self.has_arrow = False
         # return next_Action to the game
         self.current_action = next_selected_action
         return next_selected_action
 
     def determine_next_action(self,
+                              percept: Percept,
                               max_prob_dying_new_loc: float,
                               max_number_visits_allowed: int) -> Action:
         """Method determines best next action to take for 
@@ -828,6 +839,28 @@ class ProbAgent(BeelineAgent):
         """
         print('Determening next action....', self.current_node)
         next_possible_locs = self.adjacent_cells(self.current_node.location)
+
+        # First to see if we have arrow and just sensed a stench, let's fire
+        if self.has_arrow and percept.stench == True and self.wumpus_dead == False:
+            wumpus_possible_locs = [
+                n for n in next_possible_locs if n not in self.graph.get_locations()]
+            num_wumpus_locs = len(wumpus_possible_locs)
+            random_loc_to_kill = random.randint(1, num_wumpus_locs)
+            chosen_loc_to_kill = wumpus_possible_locs[random_loc_to_kill-1]
+            print('Choosing ', chosen_loc_to_kill,
+                  'as the direction we need to kill in')
+            get_required_turn_actions = self.get_required_turn_actions_to_move_forward(
+                from_node=self.current_node,
+                to_node=WumpusNode(chosen_loc_to_kill,
+                                   orientation_state=self.current_node.orientation_state)
+            )
+            for g in get_required_turn_actions:
+                print('.', g)
+            # next actions consist of the required turns, and forward as last action
+            self.queue_turn_actions = get_required_turn_actions + \
+                [Action.Shoot]
+            return None
+
         # get the probs of pit in all possible locs
         adjacent_combined_probs = {}
         adjacent_combined_probs = WumpusCoordsDict(

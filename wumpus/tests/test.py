@@ -915,7 +915,7 @@ class TestProbAgent(unittest.TestCase):
             Coords(1, 3),
         ]
         # place gold at 2,0
-        env.gold_location = Coords(2, 3)
+        env.gold_location = Coords(3, 1)
         env.wumpus_location = Coords(2, 1)
 
         # try to see without debug_action, Agent should want to MOVE BACK,
