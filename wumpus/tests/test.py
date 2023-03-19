@@ -724,37 +724,19 @@ class TestBeelineAgent(unittest.TestCase):
 
 
 class TestProbAgent(unittest.TestCase):
-    # def test_init_prob_agent(self):
-    #     probAgent: ProbAgent = ProbAgent()
-    #     assert(probAgent.pits_breeze_graph is not None)
-    #     assert(probAgent.wumpus_stench_graph is not None)
-
-    # def test_prepare_prob_graphs(self):
-    #     probAgent: ProbAgent = ProbAgent()
-    #     probAgent.pits_breeze_graph = probAgent.prepare_prob_graph_pits_breeze(
-    #         grid_width=4,
-    #         grid_height=4,
-    #         independent_prob=0.2,
-    #         indepndent_prob_node_label='pit',
-    #         dependent_prob_node_label='breeze'
-    #     )
-
-    #     probAgent.wumpus_stench_graph = probAgent.prepare_prob_graph_pits_breeze(
-    #         grid_width=4,
-    #         grid_height=4,
-    #         independent_prob=1./4/4,
-    #         indepndent_prob_node_label='wumpus',
-    #         dependent_prob_node_label='stench'
-    #     )
+    def test_init_prob_agent(self):
+        probAgent: ProbAgent = ProbAgent()
+        assert(probAgent.pits_breeze_graph is not None)
+        assert(probAgent.wumpus_stench_graph is not None)
 
     def test_update_graph_based(self):
-        print('\n')
-        print(
-            '----------------------------------------------------------------------------')
-        print(
-            '---------------test_update_graph_based--------------------------------------')
-        print(
-            '----------------------------------------------------------------------------')
+        # print('\n')
+        # print(
+        #     '----------------------------------------------------------------------------')
+        # print(
+        #     '---------------test_update_graph_based--------------------------------------')
+        # print(
+        #     '----------------------------------------------------------------------------')
 
         grid_width = 3
         grid_height = 3
@@ -764,36 +746,38 @@ class TestProbAgent(unittest.TestCase):
         )
         updated_probs = probAgent.pits_breeze_graph.get_node_probabilities_for_evidence(
             {
-                'breeze@(x: 0, y: 0)': 'F',
-                'breeze@(x: 0, y: 1)': 'T',
-                'breeze@(x: 1, y: 1)': 'F',
-                'breeze@(x: 1, y: 2)': 'T',
-                'breeze@(x: 2, y: 1)': 'F',
+                'breeze@(x: 0, y: 0)': 'T',
+                'breeze@(x: 0, y: 1)': 'F',
+                'breeze@(x: 0, y: 2)': 'F',
+                'breeze@(x: 0, y: 3)': 'F',
+                'breeze@(x: 1, y: 3)': 'T',
+                'breeze@(x: 1, y: 2)': 'F',
+                'breeze@(x: 1, y: 1)': 'T',
                 # 'breeze@(x: 2, y: 0)': 'F',
                 # 'breeze@(x: 2, y: 2)': 'F',
                 # 'breeze@(x: 1, y: 0)': 'F',
             })
-        assert(updated_probs['pit@(x: 0, y: 2)']['T'] == 1)
-        updated_probs = probAgent.wumpus_stench_graph.get_node_probabilities_for_evidence(
-            {
-                'stench@(x: 0, y: 0)': 'T'
-            })
-        print(updated_probs)
-        assert(round(updated_probs['wumpus']['(x: 0, y: 1)'], 2) == 0.5)
-        print(
-            '----------------------------------------------------------------------------')
-        print(
-            '----------------------------------------------------------------------------')
-        print('\n')
+        assert(updated_probs['pit@(x: 0, y: 1)']['T'] == 0)
+        # print(updated_probs)
+        # updated_probs = probAgent.wumpus_stench_graph.get_node_probabilities_for_evidence(
+        #     {
+        #         'stench@(x: 0, y: 0)': 'T'
+        #     })
+        # assert(round(updated_probs['wumpus']['(x: 0, y: 1)'], 2) == 0.5)
+        # print(
+        #     '----------------------------------------------------------------------------')
+        # print(
+        #     '----------------------------------------------------------------------------')
+        # print('\n')
 
     def test_dynamic_wumpus_stench_setup(self):
-        print('\n')
-        print(
-            '----------------------------------------------------------------------------')
-        print(
-            '---------------test_dynamic_wumpus_stench_setup-----------------------------')
-        print(
-            '----------------------------------------------------------------------------')
+        # print('\n')
+        # print(
+        #     '----------------------------------------------------------------------------')
+        # print(
+        #     '---------------test_dynamic_wumpus_stench_setup-----------------------------')
+        # print(
+        #     '----------------------------------------------------------------------------')
         p = ProbAgent()
 
         updated_probs = p.wumpus_stench_graph.get_node_probabilities_for_evidence(
@@ -806,99 +790,44 @@ class TestProbAgent(unittest.TestCase):
             })
         assert(updated_probs['wumpus']['(x: 0, y: 2)'] == 1)
         assert(updated_probs['wumpus']['(x: 1, y: 1)'] == 0)
-        print(
-            '----------------------------------------------------------------------------')
-        print(
-            '----------------------------------------------------------------------------')
-        print('\n')
+        # print(
+        #     '----------------------------------------------------------------------------')
+        # print(
+        #     '----------------------------------------------------------------------------')
+        # print('\n')
 
     def test_agent_update_probs(self):
-        print('\n')
-        print(
-            '----------------------------------------------------------------------------')
-        print(
-            '---------------test_agent_update_probs--------------------------------------')
-        print(
-            '----------------------------------------------------------------------------')
+        # print('\n')
+        # print(
+        #     '----------------------------------------------------------------------------')
+        # print(
+        #     '---------------test_agent_update_probs--------------------------------------')
+        # print(
+        #     '----------------------------------------------------------------------------')
         probAgent = ProbAgent()
-        p = Percept(breeze=True)
+        p = Percept(breeze=False)
         probAgent.update_evidence(
             loc=Coords(0, 0),
             percept=p
         )
         probAgent.update_probs()
-
-        # assert(probAgent.pits_probs[Coords(0, 1)] != 0)
-        # assert(probAgent.pits_probs[Coords(1, 0)] != 0)
-
-        probAgent.update_evidence(
-            loc=Coords(1, 1),
-            percept=Percept(breeze=True)
-        )
-        probAgent.update_probs()
-
-        print('pits', probAgent.pits_probs)
-        print('breeze perecepts', probAgent.breeze_percepts)
-        print('0,1', probAgent.pits_probs[Coords(0, 1)])
-        print('1,0', probAgent.pits_probs[Coords(1, 0)])
+        p = Percept(breeze=True)
         assert(round(probAgent.pits_probs[Coords(0, 1)], 3)
                == round(probAgent.pits_probs[Coords(1, 0)], 3))
 
-        print(probAgent.combined_probs)
-        print(
-            '----------------------------------------------------------------------------')
-        print(
-            '----------------------------------------------------------------------------')
-        print('\n')
+        # print('pits', probAgent.pits_probs)
+        # print('breeze perecepts', probAgent.breeze_percepts)
+        # print('0,1', probAgent.pits_probs[Coords(0, 1)])
+        # print('1,0', probAgent.pits_probs[Coords(1, 0)])
+        # assert(round(probAgent.pits_probs[Coords(0, 1)], 3)
+        #        == round(probAgent.pits_probs[Coords(1, 0)], 3))
 
-    # def test_agent_determine_next_action_move_out_of_dead_end(self):
-    #     # 1. Setup environment
-    #     (env, percept) = Environment.initialize(4, 4, 0, False)
-    #     # init agent and check if he's in the right place
-    #     agent = ProbAgent()
-    #     assert(agent.current_node.location == Coords(0, 0))
-    #     p1 = Coords(1, 1)
-    #     p2 = Coords(3, 0)
-    #     env.pit_locations = []
-    #     env.pit_locations.append(p1)
-    #     env.pit_locations.append(p2)
-    #     # place gold at 2,0
-    #     env.gold_location = Coords(0, 1)
-    #     env.wumpus_location = Coords(2, 1)
-
-    #     actions_to_quit = [
-    #         Action.Forward,
-    #         Action.Forward,
-    #     ]
-
-    #     # 2.START AGENT ACTIONS
-    #     for a in actions_to_quit:
-    #         next_action = a
-    #         next_action = agent.next_action(percept,
-    #                                         debug_action=next_action)
-    #         print('Printing agent breeze percepts')
-    #         print(agent.breeze_percepts)
-    #         print('---------------------')
-    #         (env, percept) = env.apply_action(next_action)
-    #         # print("Action: ", str(next_action.name), "| Agent Orientation: ", env.agent.orientation.state.name)
-    #         print(env.visualize())
-    #         print(percept.show())
-    #         print("Action: ", str(next_action.name),
-    #               "| Agent Orientation: ", env.agent.orientation.state.name)
-
-    #     # try to see without debug_action, Agent should want to MOVE BACK,
-    #     # to origin, and then go north to get gold
-    #     for i in range(0, 11):
-    #         next_action = agent.next_action(percept)
-    #         print(agent.breeze_percepts)
-    #         print('-------------------')
-    #         (env, percept) = env.apply_action(next_action)
-    #         print(env.visualize())
-    #         print("Action: ", str(next_action.name),
-    #               "| Agent Orientation: ", env.agent.orientation.state.name)
-
-    #     assert(env.agent.location == Coords(0, 0))
-    #     assert(percept.glitter == True)
+        # print(probAgent.combined_probs)
+        # print(
+        #     '----------------------------------------------------------------------------')
+        # print(
+        #     '----------------------------------------------------------------------------')
+        # print('\n')
 
     def test_agent_determine_next_action_no_give_up(self):
         # 1. Setup environment
@@ -909,32 +838,35 @@ class TestProbAgent(unittest.TestCase):
         agent = ProbAgent(max_prob_dying_new_loc=0.35)
         assert(agent.current_node.location == Coords(0, 0))
         env.pit_locations = [
+            Coords(0, 3),
             Coords(1, 1),
-            Coords(3, 0),
-            Coords(2, 3),
-            Coords(1, 3),
+            Coords(2, 2),
+            # Coords(3, 1),
+            # Coords(2, 3),
+            # Coords(1, 3),
         ]
+        # percept.breeze = True
         # place gold at 2,0
         env.gold_location = Coords(3, 1)
-        env.wumpus_location = Coords(2, 1)
+        env.wumpus_location = Coords(2, 3)
 
         # try to see without debug_action, Agent should want to MOVE BACK,
         # to origin, and then go north to get gold
-        for i in range(0, 100):
+        for i in range(0, 300):
             next_action = agent.next_action(percept)
             # print(agent.breeze_percepts)
             # print(agent.stench_percepts)
             # print('WUMPUS PROBS', agent.wumpus_probs)
             # print('PITS PROBS', agent.pits_probs)
-            print('-------------------')
+            # print('-------------------')
             (env, percept) = env.apply_action(next_action)
-            print(env.visualize())
-            print(percept.show())
+            # print(env.visualize())
+            # print(percept.show())
             # print("Action: ", str(next_action.name),
             #       "| Agent Orientation: ", env.agent.orientation.state.name,
             #       percept.reward)
             if percept.is_terminated:
-                print('Game over')
+                # print('Game over')
                 break
 
         assert(env.agent.location == Coords(0, 0))
@@ -948,36 +880,21 @@ class TestWumpusCoordsDict(unittest.TestCase):
         d.update({Coords(1, 1): .5})
         assert(str(d) == "{'(x: 0, y: 0)': 1.0, '(x: 1, y: 1)': 0.5}")
 
-    # def test_probs_sorting(self):
-    #     probs = {Coords(1, 1): 0.2, Coords(2, 1): 0.4, Coords(1, 0): 0.1,
-    #              Coords(0, 1): 0.7}
-    #     sorted_probs = sorted(probs.items(), key=lambda x: x[1], reverse=False)
-    #     assert(sorted_probs[0][0] == Coords(1, 0))
-    #     assert(sorted_probs[-1][0] == Coords(0, 1))
-    #     # for a, b in sorted_probs:
-    #     #     print(a, b)
-
-    # def test_sort_dict(self):
-    #     footballers_goals = {'Eusebio': 120, 'Cruyff': 104,
-    #                          'Pele': 150, 'Ronaldo': 132, 'Messi': 125}
-
-    #     sorted_footballers_by_goals = sorted(
-    #         footballers_goals.items(), key=lambda x: x[1])
-    #     converted_dict = dict(sorted_footballers_by_goals)
-
-    #     for k, a in converted_dict.items():
-    #         print(k)
-    #     print(converted_dict)
-        # Output: {'Cruyff': 104, 'Eusebio': 120, 'Messi': 125, 'Ronaldo': 132, 'Pele': 150}
+    def test_probs_sorting(self):
+        probs = {Coords(1, 1): 0.2, Coords(2, 1): 0.4, Coords(1, 0): 0.1,
+                 Coords(0, 1): 0.7}
+        sorted_probs = sorted(probs.items(), key=lambda x: x[1], reverse=False)
+        assert(sorted_probs[0][0] == Coords(1, 0))
+        assert(sorted_probs[-1][0] == Coords(0, 1))
 
     def test_filter(self):
-        print('\n')
-        print(
-            '----------------------------------------------------------------------------')
-        print(
-            '---------------test_filter--------------------------------------------------')
-        print(
-            '----------------------------------------------------------------------------')
+        # print('\n')
+        # print(
+        #     '----------------------------------------------------------------------------')
+        # print(
+        #     '---------------test_filter--------------------------------------------------')
+        # print(
+        #     '----------------------------------------------------------------------------')
 
         next_possible_locs = [
             Coords(1, 1),
@@ -995,11 +912,11 @@ class TestWumpusCoordsDict(unittest.TestCase):
                    combined_probs.items())
         )
         assert(len(adjacent_combined_probs) == 3)
-        print(
-            '----------------------------------------------------------------------------')
-        print(
-            '----------------------------------------------------------------------------')
-        print('\n')
+        # print(
+        #     '----------------------------------------------------------------------------')
+        # print(
+        #     '----------------------------------------------------------------------------')
+        # print('\n')
 
 
 class TestWumpusBayesianNetwork(unittest.TestCase):

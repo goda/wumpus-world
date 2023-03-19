@@ -87,7 +87,7 @@ class WumpusDiGraph(nx.DiGraph):
         Returns:
             List[Coords]: list of all locations in the graph
         """
-        return [n.location for n in self.nodes]
+        return list(dict.fromkeys([n.location for n in self.nodes]))
 
     def display_graph(self) -> None:
         G = self
